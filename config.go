@@ -192,7 +192,7 @@ func (pp proxyParser) ProxySs(val string) {
 	upstreamProxy.add(upstream)
 }
 
-func (pp proxyParser) ProxyMeow(val string) {
+func (pp proxyParser) ProxyCoral(val string) {
 	method, passwd, server, err := parseMethodPasswdServer(val)
 	if err != nil {
 		Fatal("coral upstream", err)
@@ -203,7 +203,7 @@ func (pp proxyParser) ProxyMeow(val string) {
 	}
 
 	config.saveReqLine = true
-	upstream := newMeowUpstream(server, method, passwd)
+	upstream := newCoralUpstream(server, method, passwd)
 	upstreamProxy.add(upstream)
 }
 
@@ -228,12 +228,12 @@ func (lp listenParser) ListenHttp(val string, proto string) {
 	addListenProxy(newHttpProxy(addr, addrInPAC, proto))
 }
 
-func (lp listenParser) ListenMeow(val string) {
+func (lp listenParser) ListenCoral(val string) {
 	method, passwd, addr, err := parseMethodPasswdServer(val)
 	if err != nil {
 		Fatal("listen coral", err)
 	}
-	addListenProxy(newMeowProxy(method, passwd, addr))
+	addListenProxy(newCoralProxy(method, passwd, addr))
 }
 
 // configParser provides functions to parse options in config file.
@@ -280,7 +280,7 @@ func (p configParser) ParseListen(val string) {
 	if method == zeroMethod {
 		Fatalf("no such listen protocol \"%s\"\n", arr[0])
 	}
-	if methodName == "ListenMeow" {
+	if methodName == "ListenCoral" {
 		method.Call([]reflect.Value{reflect.ValueOf(server)})
 	} else {
 		method.Call([]reflect.Value{reflect.ValueOf(server), reflect.ValueOf(protocol)})

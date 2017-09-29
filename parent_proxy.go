@@ -494,7 +494,7 @@ func (s coralConn) String() string {
 	return "coral proxy " + s.upstream.server
 }
 
-func newMeowUpstream(srv, method, passwd string) *coralUpstream {
+func newCoralUpstream(srv, method, passwd string) *coralUpstream {
 	cipher, err := ss.NewCipher(method, passwd)
 	if err != nil {
 		Fatal("create coral cipher:", err)

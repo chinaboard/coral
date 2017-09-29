@@ -189,7 +189,7 @@ type coralProxy struct {
 	cipher *ss.Cipher
 }
 
-func newMeowProxy(method, passwd, addr string) *coralProxy {
+func newCoralProxy(method, passwd, addr string) *coralProxy {
 	cipher, err := ss.NewCipher(method, passwd)
 	if err != nil {
 		Fatal("can't initialize coral proxy server", err)
@@ -504,8 +504,8 @@ func (c *clientConn) serve() {
 			return
 		}
 		// Put server connection to pool, so other clients can use it.
-		_, isMeowConn := sv.Conn.(coralConn)
-		if rp.ConnectionKeepAlive || isMeowConn {
+		_, isCoralConn := sv.Conn.(coralConn)
+		if rp.ConnectionKeepAlive || isCoralConn {
 			if debug {
 				debug.Printf("cli(%s) connPool put %s", c.RemoteAddr(), sv.hostPort)
 			}
@@ -946,8 +946,8 @@ func (sv *serverConn) doConnect(r *Request, c *clientConn) (err error) {
 
 	_, isHttpConn := sv.Conn.(httpConn)
 	_, isHttpsConn := sv.Conn.(httpsConn)
-	_, isMeowConn := sv.Conn.(coralConn)
-	if isHttpConn || isHttpsConn || isMeowConn {
+	_, isCoralConn := sv.Conn.(coralConn)
+	if isHttpConn || isHttpsConn || isCoralConn {
 		if debug {
 			debug.Printf("cli(%s) send CONNECT request to upstream\n", c.RemoteAddr())
 		}
