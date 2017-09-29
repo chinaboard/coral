@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-	//fileConfig := parseFileConfig()
 	var c Config
 	remoteConfig := toolkit.HttpGet()
 
@@ -16,7 +15,6 @@ func main() {
 	fmt.Println()
 
 	parseConfigString(remoteConfig, &c)
-	//parseConfig(fileConfig.CcFile, fileConfig)
 
 	initSelfListenAddr()
 	initLog()

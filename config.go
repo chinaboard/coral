@@ -2,10 +2,7 @@ package main
 
 import (
 	"errors"
-	"flag"
-	"fmt"
 	"net"
-	"path"
 	"reflect"
 	"strconv"
 	"strings"
@@ -13,7 +10,7 @@ import (
 )
 
 const (
-	version           = "1.0"
+	version           = "1.0.0"
 	defaultListenAddr = "127.0.0.1:5438"
 )
 
@@ -62,78 +59,6 @@ type Config struct {
 }
 
 var config Config
-var configNeedUpgrade bool // whether should upgrade config file
-
-func printVersion() {
-	fmt.Println("Coral version", version)
-}
-
-func initConfig(ccFile string) {
-	config.dir = path.Dir(ccFile)
-	config.DirectFile = path.Join(config.dir, directFname)
-	config.ProxyFile = path.Join(config.dir, proxyFname)
-	config.RejectFile = path.Join(config.dir, rejectFname)
-
-	config.JudgeByIP = true
-
-	config.AuthTimeout = 2 * time.Hour
-}
-
-// Whether command line options specifies listen addr
-var cmdHasListenAddr bool
-
-func parseCmdLineConfig() *Config {
-	var c Config
-	var listenAddr string
-
-	flag.StringVar(&c.CcFile, "cc", "", "config file, defaults to $HOME/.coral/cc on Unix, ./cc.txt on Windows")
-	// Specifying listen default value to StringVar would override config file options
-	flag.StringVar(&listenAddr, "listen", "", "listen address, disables listen in config")
-	flag.IntVar(&c.Core, "core", 2, "number of cores to use")
-	flag.StringVar(&c.LogFile, "logFile", "", "write output to file")
-	flag.BoolVar(&c.PrintVer, "version", false, "print version")
-	flag.StringVar(&c.Cert, "cert", "", "cert for local https proxy")
-	flag.StringVar(&c.Key, "key", "", "key for local https proxy")
-
-	flag.Parse()
-
-	if c.CcFile == "" {
-		c.CcFile = getDefaultCcFile()
-	} else {
-		c.CcFile = expandTilde(c.CcFile)
-	}
-	if err := isFileExists(c.CcFile); err != nil {
-		Fatal("fail to get config file:", err)
-	}
-	initConfig(c.CcFile)
-	initDomainList(config.DirectFile, domainTypeDirect)
-	initDomainList(config.ProxyFile, domainTypeProxy)
-	initDomainList(config.RejectFile, domainTypeReject)
-
-	if listenAddr != "" {
-		configParser{}.ParseListen(listenAddr)
-		cmdHasListenAddr = true // must come after parse
-	}
-	return &c
-}
-
-func parseFileConfig() *Config {
-	var c Config
-
-	c.CcFile = getDefaultCcFile()
-
-	if err := isFileExists(c.CcFile); err != nil {
-		Fatal("fail to get config file:", err)
-	}
-
-	initConfig(c.CcFile)
-
-	initDomainList(config.DirectFile, domainTypeDirect)
-	initDomainList(config.ProxyFile, domainTypeProxy)
-	initDomainList(config.RejectFile, domainTypeReject)
-
-	return &c
-}
 
 func parseBool(v, msg string) bool {
 	switch v {
@@ -286,10 +211,6 @@ func (pp proxyParser) ProxyMeow(val string) {
 type listenParser struct{}
 
 func (lp listenParser) ListenHttp(val string, proto string) {
-	if cmdHasListenAddr {
-		return
-	}
-
 	arr := strings.Fields(val)
 	if len(arr) > 2 {
 		Fatal("too many fields in listen =", proto, val)
@@ -308,9 +229,6 @@ func (lp listenParser) ListenHttp(val string, proto string) {
 }
 
 func (lp listenParser) ListenMeow(val string) {
-	if cmdHasListenAddr {
-		return
-	}
 	method, passwd, addr, err := parseMethodPasswdServer(val)
 	if err != nil {
 		Fatal("listen coral", err)
@@ -341,10 +259,6 @@ func (p configParser) ParseProxy(val string) {
 }
 
 func (p configParser) ParseListen(val string) {
-	if cmdHasListenAddr {
-		return
-	}
-
 	parser := reflect.ValueOf(listenParser{})
 	zeroMethod := reflect.Value{}
 
@@ -353,7 +267,6 @@ func (p configParser) ParseListen(val string) {
 	if len(arr) == 1 {
 		protocol = "http"
 		server = val
-		configNeedUpgrade = true
 	} else {
 		protocol = arr[0]
 		server = arr[1]
@@ -379,7 +292,6 @@ func (p configParser) ParseLogFile(val string) {
 }
 
 func (p configParser) ParseAddrInPAC(val string) {
-	configNeedUpgrade = true
 	arr := strings.Split(val, ",")
 	for i, s := range arr {
 		if s == "" {
@@ -404,7 +316,6 @@ func (p configParser) ParseAddrInPAC(val string) {
 func (p configParser) ParseSocksUpstream(val string) {
 	var pp proxyParser
 	pp.ProxySocks5(val)
-	configNeedUpgrade = true
 }
 
 func (p configParser) ParseSshServer(val string) {
@@ -437,7 +348,6 @@ func (p configParser) ParseHttpUpstream(val string) {
 	http.upstream = newHttpUpstream(val)
 	upstreamProxy.add(http.upstream)
 	http.serverCnt++
-	configNeedUpgrade = true
 }
 
 func (p configParser) ParseHttpUserPasswd(val string) {
@@ -511,7 +421,6 @@ func (p configParser) ParseShadowSocks(val string) {
 	shadow.upstream = newShadowsocksUpstream(val)
 	upstreamProxy.add(shadow.upstream)
 	shadow.serverCnt++
-	configNeedUpgrade = true
 }
 
 func (p configParser) ParseShadowPasswd(val string) {
