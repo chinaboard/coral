@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
+	"coral/bufio"
+	"coral/leakybuf"
 	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
-	"leakybuf"
-	"newbufio"
 )
 
 // As I'm using ReadSlice to read line, it's possible to get

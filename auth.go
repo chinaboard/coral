@@ -2,11 +2,11 @@ package main
 
 import (
 	"bytes"
+	"coral/bufio"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
-	"bufio"
 	"os"
 	"strconv"
 	"strings"

@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"color"
+	"coral/color"
 )
 
 type infoLogging bool

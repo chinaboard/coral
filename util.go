@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"newbufio"
+	"coral/bufio"
 )
 
 const isWindows = runtime.GOOS == "windows"

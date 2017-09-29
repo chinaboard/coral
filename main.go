@@ -1,10 +1,10 @@
 package main
 
 import (
+	"coral/toolkit"
 	"fmt"
 	"runtime"
 	"sync"
-	"toolkit"
 )
 
 func main() {
