@@ -19,7 +19,7 @@ func Testjudge(t *testing.T) {
 	directDomains := []string{
 		"baidu.com",
 		"www.baidu.com",
-		"www.ahut.edu.cn",
+		"www.163.com",
 	}
 	for _, domain := range directDomains {
 		url, _ := ParseRequestURI(domain)

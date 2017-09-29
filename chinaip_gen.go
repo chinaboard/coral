@@ -4,16 +4,16 @@
 package main
 
 import (
-	"newbufio"
-	"strconv"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
-	"encoding/binary"
-	"net/http"
-	"os"
-	"strings"
 	"net"
-	"errors"
+	"net/http"
+	"newbufio"
+	"os"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -43,7 +43,7 @@ func main() {
 	}
 	defer resp.Body.Close()
 	scanner := bufio.NewScanner(resp.Body)
-	
+
 	start_list := []string{}
 	count_list := []string{}
 
@@ -62,7 +62,7 @@ func main() {
 		ipLong, err := ip2long(ip)
 		if err != nil {
 			panic(err)
-		}	
+		}
 		start_list = append(start_list, strconv.FormatUint(uint64(ipLong), 10))
 		count_list = append(count_list, count)
 	}

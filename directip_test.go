@@ -30,7 +30,7 @@ func TestIPShouldDirect(t *testing.T) {
 
 	directIPDomains := []string{
 		"baidu.com",
-		"www.ahut.edu.cn",
+		"163.com",
 	}
 	for _, domain := range directIPDomains {
 		hostIPs, err := net.LookupIP(domain)

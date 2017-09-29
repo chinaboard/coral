@@ -23,9 +23,9 @@ const (
 )
 
 type Config struct {
-	CcFile      string // config file
-	LogFile     string // path for log file
-	JudgeByIP   bool
+	CcFile      string          // config file
+	LogFile     string          // path for log file
+	JudgeByIP   bool            // if false only use DomainType
 	LoadBalance LoadBalanceMode // select load balance mode
 
 	SshServer []string
@@ -43,11 +43,6 @@ type Config struct {
 	Core int
 
 	HttpErrorCode int
-
-	dir        string // directory containing config file
-	DirectFile string // direct sites specified by user
-	ProxyFile  string // sites using proxy specified by user
-	RejectFile string
 
 	// not configurable in config file
 	PrintVer bool
@@ -334,7 +329,7 @@ func (p configParser) ParseSshServer(val string) {
 	config.SshServer = append(config.SshServer, val)
 }
 
-var http struct {
+var httpProtocol struct {
 	upstream  *httpUpstream
 	serverCnt int
 	passwdCnt int
@@ -345,20 +340,20 @@ func (p configParser) ParseHttpUpstream(val string) {
 		Fatal("upstream http server", err)
 	}
 	config.saveReqLine = true
-	http.upstream = newHttpUpstream(val)
-	upstreamProxy.add(http.upstream)
-	http.serverCnt++
+	httpProtocol.upstream = newHttpUpstream(val)
+	upstreamProxy.add(httpProtocol.upstream)
+	httpProtocol.serverCnt++
 }
 
 func (p configParser) ParseHttpUserPasswd(val string) {
 	if !isUserPasswdValid(val) {
 		Fatal("httpUserPassword syntax wrong, should be in the form of user:passwd")
 	}
-	if http.passwdCnt >= http.serverCnt {
+	if httpProtocol.passwdCnt >= httpProtocol.serverCnt {
 		Fatal("must specify httpUpstream before corresponding httpUserPasswd")
 	}
-	http.upstream.initAuth(val)
-	http.passwdCnt++
+	httpProtocol.upstream.initAuth(val)
+	httpProtocol.passwdCnt++
 }
 
 func (p configParser) ParseLoadBalance(val string) {
@@ -374,21 +369,7 @@ func (p configParser) ParseLoadBalance(val string) {
 	}
 }
 
-func (p configParser) ParseDirectFile(val string) {
-	config.DirectFile = expandTilde(val)
-	if err := isFileExists(config.DirectFile); err != nil {
-		Fatal("direct file:", err)
-	}
-}
-
-func (p configParser) ParseProxyFile(val string) {
-	config.ProxyFile = expandTilde(val)
-	if err := isFileExists(config.ProxyFile); err != nil {
-		Fatal("proxy file:", err)
-	}
-}
-
-var shadow struct {
+var shadowProtocol struct {
 	upstream *shadowsocksUpstream
 	passwd   string
 	method   string
@@ -399,52 +380,52 @@ var shadow struct {
 }
 
 func (p configParser) ParseShadowSocks(val string) {
-	if shadow.serverCnt-shadow.passwdCnt > 1 {
+	if shadowProtocol.serverCnt-shadowProtocol.passwdCnt > 1 {
 		Fatal("must specify shadowPasswd for every shadowSocks server")
 	}
 	// create new shadowsocks upstream if both server and password are given
 	// previously
-	if shadow.upstream != nil && shadow.serverCnt == shadow.passwdCnt {
-		if shadow.methodCnt < shadow.serverCnt {
-			shadow.method = ""
-			shadow.methodCnt = shadow.serverCnt
+	if shadowProtocol.upstream != nil && shadowProtocol.serverCnt == shadowProtocol.passwdCnt {
+		if shadowProtocol.methodCnt < shadowProtocol.serverCnt {
+			shadowProtocol.method = ""
+			shadowProtocol.methodCnt = shadowProtocol.serverCnt
 		}
-		shadow.upstream.initCipher(shadow.method, shadow.passwd)
+		shadowProtocol.upstream.initCipher(shadowProtocol.method, shadowProtocol.passwd)
 	}
 	if val == "" { // the final call
-		shadow.upstream = nil
+		shadowProtocol.upstream = nil
 		return
 	}
 	if err := checkServerAddr(val); err != nil {
 		Fatal("shadowsocks server", err)
 	}
-	shadow.upstream = newShadowsocksUpstream(val)
-	upstreamProxy.add(shadow.upstream)
-	shadow.serverCnt++
+	shadowProtocol.upstream = newShadowsocksUpstream(val)
+	upstreamProxy.add(shadowProtocol.upstream)
+	shadowProtocol.serverCnt++
 }
 
 func (p configParser) ParseShadowPasswd(val string) {
-	if shadow.passwdCnt >= shadow.serverCnt {
+	if shadowProtocol.passwdCnt >= shadowProtocol.serverCnt {
 		Fatal("must specify shadowSocks before corresponding shadowPasswd")
 	}
-	if shadow.passwdCnt+1 != shadow.serverCnt {
+	if shadowProtocol.passwdCnt+1 != shadowProtocol.serverCnt {
 		Fatal("must specify shadowPasswd for every shadowSocks")
 	}
-	shadow.passwd = val
-	shadow.passwdCnt++
+	shadowProtocol.passwd = val
+	shadowProtocol.passwdCnt++
 }
 
 func (p configParser) ParseShadowMethod(val string) {
-	if shadow.methodCnt >= shadow.serverCnt {
+	if shadowProtocol.methodCnt >= shadowProtocol.serverCnt {
 		Fatal("must specify shadowSocks before corresponding shadowMethod")
 	}
 	// shadowMethod is optional
-	shadow.method = val
-	shadow.methodCnt++
+	shadowProtocol.method = val
+	shadowProtocol.methodCnt++
 }
 
 func checkShadowsocks() {
-	if shadow.serverCnt != shadow.passwdCnt {
+	if shadowProtocol.serverCnt != shadowProtocol.passwdCnt {
 		Fatal("number of shadowsocks server and password does not match")
 	}
 	// parse the last shadowSocks option again to initialize the last
@@ -507,12 +488,18 @@ func (p configParser) ParseKey(val string) {
 	config.Key = val
 }
 
-func parseConfigString(lines []string, override *Config) {
+func init() {
+	config.JudgeByIP = true
+}
+
+func initConfig(configData *conifgData) {
+
+	remoteConfig := configData.config
 
 	parser := reflect.ValueOf(configParser{})
 	zeroMethod := reflect.Value{}
 
-	for index, line := range lines {
+	for index, line := range remoteConfig {
 
 		if line == "" || line[0] == '#' {
 			continue
@@ -537,10 +524,13 @@ func parseConfigString(lines []string, override *Config) {
 		method.Call(args)
 	}
 
-	overrideConfig(&config, override)
+	initDomainList(configData.directDomain, domainTypeDirect)
+	initDomainList(configData.proxyDomain, domainTypeProxy)
+	initDomainList(configData.rejectDomain, domainTypeReject)
+
 	checkConfig()
 
-	upgradeMemConfig(lines)
+	upgradeMemConfig(remoteConfig)
 }
 
 func upgradeMemConfig(lines []string) {
@@ -575,31 +565,6 @@ func upgradeMemConfig(lines []string) {
 		case "proxy":
 			proxyId++
 		default:
-		}
-	}
-}
-
-func overrideConfig(oldconfig, override *Config) {
-	newVal := reflect.ValueOf(override).Elem()
-	oldVal := reflect.ValueOf(oldconfig).Elem()
-
-	// typeOfT := newVal.Type()
-	for i := 0; i < newVal.NumField(); i++ {
-		newField := newVal.Field(i)
-		oldField := oldVal.Field(i)
-		// log.Printf("%d: %s %s = %v\n", i,
-		// typeOfT.Field(i).Name, newField.Type(), newField.Interface())
-		switch newField.Kind() {
-		case reflect.String:
-			s := newField.String()
-			if s != "" {
-				oldField.SetString(s)
-			}
-		case reflect.Int:
-			i := newField.Int()
-			if i != 0 {
-				oldField.SetInt(i)
-			}
 		}
 	}
 }

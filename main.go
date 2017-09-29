@@ -1,20 +1,19 @@
 package main
 
 import (
-	"coral/toolkit"
 	"fmt"
 	"runtime"
 	"sync"
 )
 
 func main() {
-	var c Config
-	remoteConfig := toolkit.HttpGet()
 
 	fmt.Printf(`Coral Proxy %s`, version)
 	fmt.Println()
 
-	parseConfigString(remoteConfig, &c)
+	configData := syncConfigData()
+
+	initConfig(configData)
 
 	initSelfListenAddr()
 	initLog()

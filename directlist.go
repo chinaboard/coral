@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"net"
-	"os"
-	"strings"
 	"sync"
 )
 
@@ -97,30 +94,18 @@ func (domainList *DomainList) GetDomainList() []string {
 
 var domainList = newDomainList()
 
-func initDomainList(domainListFile string, domainType DomainType) {
-	var err error
-	if err = isFileExists(domainListFile); err != nil {
-		return
-	}
-	f, err := os.Open(domainListFile)
-	if err != nil {
-		errl.Println("Error opening domain list:", err)
-		return
-	}
-	defer f.Close()
+func initDomainList(domainConfigList []string, domainType DomainType) {
 
-	domainList.Lock()
-	defer domainList.Unlock()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		domain := strings.TrimSpace(scanner.Text())
+	if len(domainConfigList) == 0 {
+		return
+	}
+
+	for _, domain := range domainConfigList {
 		if domain == "" {
 			continue
 		}
 		debug.Printf("Loaded domain %s as type %v", domain, domainType)
 		domainList.Domain[domain] = domainType
 	}
-	if scanner.Err() != nil {
-		errl.Printf("Error reading domain list %s: %v\n", domainListFile, scanner.Err())
-	}
+
 }
