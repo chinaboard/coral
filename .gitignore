@@ -1,3 +1,13 @@
+.idea
+bin/
+*.sublime*
+*.txt
+.vscode
+.DS_Store
+*.swp
+*.swo
+Coral.iml
+
 # Binaries for programs and plugins
 *.exe
 *.dll
