@@ -1,5 +1,15 @@
+.idea
+bin/
+*.sublime*
+*.txt
+.vscode
+.DS_Store
+*.swp
+*.swo
+Coral.iml
+
 # Binaries for programs and plugins
-*.exe
+bin/
 *.dll
 *.so
 *.dylib
@@ -12,3 +22,5 @@
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+*.cache
