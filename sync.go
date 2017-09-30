@@ -7,17 +7,17 @@ import (
 )
 
 type conifgData struct {
-	config       []string
-	directDomain []string
-	proxyDomain  []string
-	rejectDomain []string
+	Config       []string
+	DirectDomain []string
+	ProxyDomain  []string
+	RejectDomain []string
 }
-
-var configData conifgData
 
 func syncConfigData() *conifgData {
 
 	remoteData := get("http://localhost:12345/config")
+
+	var configData conifgData
 
 	json.Unmarshal(remoteData, &configData)
 

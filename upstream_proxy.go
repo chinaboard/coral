@@ -22,7 +22,7 @@ import (
 type UpstreamProxy interface {
 	connect(*URL) (net.Conn, error)
 	getServer() string // for use in updating server latency
-	genConfig() string // for upgrading config
+	toString() string  // for upgrading config
 }
 
 // Interface for different proxy selection strategy.
@@ -334,7 +334,7 @@ func (hp *httpsUpstream) getServer() string {
 	return hp.server
 }
 
-func (hp *httpsUpstream) genConfig() string {
+func (hp *httpsUpstream) toString() string {
 	if hp.userPasswd != "" {
 		return fmt.Sprintf("proxy = https://%s@%s", hp.userPasswd, hp.server)
 	} else {
@@ -390,7 +390,7 @@ func (hp *httpUpstream) getServer() string {
 	return hp.server
 }
 
-func (hp *httpUpstream) genConfig() string {
+func (hp *httpUpstream) toString() string {
 	if hp.userPasswd != "" {
 		return fmt.Sprintf("proxy = http://%s@%s", hp.userPasswd, hp.server)
 	} else {
@@ -448,7 +448,7 @@ func (sp *shadowsocksUpstream) getServer() string {
 	return sp.server
 }
 
-func (sp *shadowsocksUpstream) genConfig() string {
+func (sp *shadowsocksUpstream) toString() string {
 	method := sp.method
 	if method == "" {
 		method = "table"
@@ -506,7 +506,7 @@ func (cp *coralUpstream) getServer() string {
 	return cp.server
 }
 
-func (cp *coralUpstream) genConfig() string {
+func (cp *coralUpstream) toString() string {
 	method := cp.method
 	if method == "" {
 		method = "table"
@@ -571,7 +571,7 @@ func (sp *socksUpstream) getServer() string {
 	return sp.server
 }
 
-func (sp *socksUpstream) genConfig() string {
+func (sp *socksUpstream) toString() string {
 	return fmt.Sprintf("proxy = socks5://%s", sp.server)
 }
 

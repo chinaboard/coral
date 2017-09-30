@@ -92,7 +92,7 @@ var (
 type Proxy interface {
 	Serve(*sync.WaitGroup)
 	Addr() string
-	genConfig() string // for upgrading config
+	toString() string // for upgrading config
 }
 
 var listenProxy []Proxy
@@ -116,7 +116,7 @@ func newHttpProxy(addr, addrInPAC string, proto string) *httpProxy {
 	return &httpProxy{addr, port, addrInPAC, proto}
 }
 
-func (proxy *httpProxy) genConfig() string {
+func (proxy *httpProxy) toString() string {
 	if proxy.addrInPAC != "" {
 		return fmt.Sprintf("listen = %s://%s %s", proxy.proto, proxy.addr, proxy.addrInPAC)
 	} else {
@@ -197,7 +197,7 @@ func newCoralProxy(method, passwd, addr string) *coralProxy {
 	return &coralProxy{addr, method, passwd, cipher}
 }
 
-func (cp *coralProxy) genConfig() string {
+func (cp *coralProxy) toString() string {
 	method := cp.method
 	if method == "" {
 		method = "table"

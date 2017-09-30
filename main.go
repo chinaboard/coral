@@ -11,9 +11,7 @@ func main() {
 	fmt.Printf(`Coral Proxy %s`, version)
 	fmt.Println()
 
-	configData := syncConfigData()
-
-	initConfig(configData)
+	initConfig()
 
 	initSelfListenAddr()
 	initLog()

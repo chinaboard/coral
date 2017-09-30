@@ -23,7 +23,6 @@ const (
 )
 
 type Config struct {
-	CcFile      string          // config file
 	LogFile     string          // path for log file
 	JudgeByIP   bool            // if false only use DomainType
 	LoadBalance LoadBalanceMode // select load balance mode
@@ -492,14 +491,25 @@ func init() {
 	config.JudgeByIP = true
 }
 
-func initConfig(configData *conifgData) {
+func initConfig() {
 
-	remoteConfig := configData.config
+	configData := syncConfigData()
 
+	remoteConfig := configData.Config
+
+	initLinesConfig(remoteConfig)
+
+	initDomainList(configData.DirectDomain, domainTypeDirect)
+	initDomainList(configData.ProxyDomain, domainTypeProxy)
+	initDomainList(configData.RejectDomain, domainTypeReject)
+
+	checkConfig()
+}
+
+func initLinesConfig(lines []string) {
 	parser := reflect.ValueOf(configParser{})
 	zeroMethod := reflect.Value{}
-
-	for index, line := range remoteConfig {
+	for index, line := range lines {
 
 		if line == "" || line[0] == '#' {
 			continue
@@ -522,50 +532,6 @@ func initConfig(configData *conifgData) {
 		}
 		args := []reflect.Value{reflect.ValueOf(val)}
 		method.Call(args)
-	}
-
-	initDomainList(configData.directDomain, domainTypeDirect)
-	initDomainList(configData.proxyDomain, domainTypeProxy)
-	initDomainList(configData.rejectDomain, domainTypeReject)
-
-	checkConfig()
-
-	upgradeMemConfig(remoteConfig)
-}
-
-func upgradeMemConfig(lines []string) {
-	// Upgrade config.
-	proxyId := 0
-	listenId := 0
-	for _, line := range lines {
-		line := strings.TrimSpace(line)
-		if line == "" || line[0] == '#' {
-			continue
-		}
-
-		v := strings.Split(line, "=")
-		key := strings.TrimSpace(v[0])
-
-		switch key {
-		case "listen":
-			listen := listenProxy[listenId]
-			listenId++
-			listen.genConfig()
-
-		case "httpUpstream", "shadowSocks", "socksUpstream":
-			backPool, ok := upstreamProxy.(*backupUpstreamPool)
-			if !ok {
-				panic("initial upstream pool should be backup pool")
-			}
-			upstream := backPool.upstream[proxyId]
-			proxyId++
-			upstream.genConfig()
-		case "httpUserPasswd", "shadowPasswd", "shadowMethod", "addrInPAC":
-			// just comment out
-		case "proxy":
-			proxyId++
-		default:
-		}
 	}
 }
 
