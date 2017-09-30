@@ -131,6 +131,8 @@ func (proxy *httpProxy) Addr() string {
 var deniedLocalAddresses map[string]bool
 
 func getLocalAddresses() {
+	deniedLocalAddresses = make(map[string]bool)
+
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return
@@ -487,6 +489,14 @@ func (c *clientConn) serve() {
 			authed = true
 		}
 
+		if config.TunnelAllowed {
+			_, found := config.TunnelAllowedPort[r.URL.Port]
+			if r.isConnect && !found {
+				sendErrorPage(c, statusForbidden, "Forbidden tunnel port",
+					genErrMsg(&r, nil, "Please contact proxy admin."))
+				return
+			}
+		}
 		if r.ExpectContinue {
 			sendErrorPage(c, statusExpectFailed, "Expect header not supported",
 				"Please contact coral's developer if you see this.")

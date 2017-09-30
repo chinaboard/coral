@@ -22,11 +22,25 @@ const (
 	loadBalanceLatency
 )
 
+// allow the same tunnel ports as polipo
+var defaultTunnelAllowedPort = []string{
+	"22", "80", "443", // ssh, http, https
+	"873",                      // rsync
+	"143", "220", "585", "993", // imap, imap3, imap4-ssl, imaps
+	"109", "110", "473", "995", // pop2, pop3, hybrid-pop, pop3s
+	"5222", "5269", // jabber-client, jabber-server
+	"5223",                 // jabber-google
+	"2401", "3690", "9418", // cvspserver, svn, git
+}
+
 type Config struct {
 	LogFile     string          // path for log file
 	JudgeByIP   bool            // if false only use DomainType
 	DeniedLocal bool            // DeniedLocalAddresses
 	LoadBalance LoadBalanceMode // select load balance mode
+
+	TunnelAllowed     bool
+	TunnelAllowedPort map[string]bool // allowed ports to create tunnel
 
 	SshServer []string
 
@@ -35,10 +49,6 @@ type Config struct {
 	UserPasswdFile string // file that contains user:passwd:[port] pairs
 	AllowedClient  string
 	AuthTimeout    time.Duration
-
-	// advanced options
-	DialTimeout time.Duration
-	ReadTimeout time.Duration
 
 	Core int
 
@@ -308,6 +318,17 @@ func (p configParser) ParseAddrInPAC(val string) {
 	}
 }
 
+func (p configParser) ParseTunnelAllowedPort(val string) {
+	arr := strings.Split(val, ",")
+	for _, s := range arr {
+		s = strings.TrimSpace(s)
+		if _, err := strconv.Atoi(s); err != nil {
+			Fatal("tunnel allowed ports", err)
+		}
+		config.TunnelAllowedPort[s] = true
+	}
+}
+
 func (p configParser) ParseSocksUpstream(val string) {
 	var pp proxyParser
 	pp.ProxySocks5(val)
@@ -468,20 +489,16 @@ func (p configParser) ParseHttpErrorCode(val string) {
 	config.HttpErrorCode = parseInt(val, "httpErrorCode")
 }
 
-func (p configParser) ParseReadTimeout(val string) {
-	config.ReadTimeout = parseDuration(val, "readTimeout")
-}
-
-func (p configParser) ParseDialTimeout(val string) {
-	config.DialTimeout = parseDuration(val, "dialTimeout")
-}
-
 func (p configParser) ParseJudgeByIP(val string) {
 	config.JudgeByIP = parseBool(val, "judgeByIP")
 }
 
 func (p configParser) ParseDeniedLocal(val string) {
 	config.DeniedLocal = parseBool(val, "DeniedLocal")
+}
+
+func (p configParser) ParseTunnelAllowed(val string) {
+	config.TunnelAllowed = parseBool(val, "TunnelAllowed")
 }
 
 func (p configParser) ParseCert(val string) {
@@ -495,6 +512,14 @@ func (p configParser) ParseKey(val string) {
 func init() {
 	config.JudgeByIP = true
 	config.DeniedLocal = true
+	config.TunnelAllowed = true
+	config.AuthTimeout = 2 * time.Hour
+
+	config.TunnelAllowedPort = make(map[string]bool)
+
+	for _, port := range defaultTunnelAllowedPort {
+		config.TunnelAllowedPort[port] = true
+	}
 }
 
 func initConfig() {
