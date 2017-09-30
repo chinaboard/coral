@@ -27,6 +27,7 @@ func newDomainList() *DomainList {
 
 func (domainList *DomainList) judge(url *URL) (domainType DomainType) {
 	debug.Printf("judging host: %s", url.Host)
+
 	if domainList.Domain[url.Host] == domainTypeReject || domainList.Domain[url.Domain] == domainTypeReject {
 		debug.Printf("host or domain should reject")
 		return domainTypeReject

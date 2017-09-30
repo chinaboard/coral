@@ -128,6 +128,33 @@ func (proxy *httpProxy) Addr() string {
 	return proxy.addr
 }
 
+var deniedLocalAddresses map[string]bool
+
+func getLocalAddresses() {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return
+	}
+
+	for _, i := range ifaces {
+		addrs, er := i.Addrs()
+		if er != nil {
+			return
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			deniedLocalAddresses[ip.String()] = true
+		}
+	}
+}
+
 func (hp *httpProxy) Serve(wg *sync.WaitGroup) {
 	var err error
 	var ln net.Listener
@@ -165,6 +192,9 @@ func (hp *httpProxy) Serve(wg *sync.WaitGroup) {
 	} else {
 		pacURL = fmt.Sprintf("%s://%s/pac", hp.proto, hp.addrInPAC)
 	}
+
+	getLocalAddresses()
+
 	info.Printf("listen %s %s, PAC url %s\n", hp.proto, hp.addr, pacURL)
 
 	for {
@@ -679,6 +709,20 @@ func (c *clientConn) getServerConn(r *Request) (*serverConn, error) {
 }
 
 func connectDirect2(url *URL, recursive bool) (net.Conn, error) {
+
+	if config.DeniedLocal {
+		addrs, er := net.LookupHost(url.Host)
+		if er == nil {
+			for _, addr := range addrs {
+				_, found := deniedLocalAddresses[addr]
+				if found {
+					return nil, errors.New(
+						"Connecting to local is prohibited.")
+				}
+			}
+		}
+	}
+
 	var c net.Conn
 	var err error
 	c, err = net.Dial("tcp", url.HostPort)
@@ -724,7 +768,7 @@ func isErrTooManyOpenFd(err error) bool {
 	return false
 }
 
-// MEOW !!!
+// Coral !!!
 // Connect to requested server according to whether it's visit count.
 // If direct connection fails, try upstream servers.
 func (c *clientConn) connect(r *Request, direct bool) (srvconn net.Conn, err error) {

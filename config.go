@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	version           = "1.0.0"
+	version           = "1.0.1"
 	defaultListenAddr = "127.0.0.1:5438"
 )
 
@@ -25,6 +25,7 @@ const (
 type Config struct {
 	LogFile     string          // path for log file
 	JudgeByIP   bool            // if false only use DomainType
+	DeniedLocal bool            // DeniedLocalAddresses
 	LoadBalance LoadBalanceMode // select load balance mode
 
 	SshServer []string
@@ -479,6 +480,10 @@ func (p configParser) ParseJudgeByIP(val string) {
 	config.JudgeByIP = parseBool(val, "judgeByIP")
 }
 
+func (p configParser) ParseDeniedLocal(val string) {
+	config.DeniedLocal = parseBool(val, "DeniedLocal")
+}
+
 func (p configParser) ParseCert(val string) {
 	config.Cert = val
 }
@@ -489,6 +494,7 @@ func (p configParser) ParseKey(val string) {
 
 func init() {
 	config.JudgeByIP = true
+	config.DeniedLocal = true
 }
 
 func initConfig() {

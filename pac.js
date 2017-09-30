@@ -1,6 +1,8 @@
 var direct = 'DIRECT';
 var httpProxy = 'PROXY';
 
+httpProxy = 'DIRECT; ' + httpProxy;
+
 var directList = [
 	"baidu.com",
 	"www.taobao.com"
