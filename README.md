@@ -3,7 +3,7 @@
 Now Version：1.0.0 [CHANGELOG](CHANGELOG.md)
 
 
-## Thanks
+## Acknowledgements
 
 - [@renzhn](https://github.com/renzhn) - MEOW author
 - [@cyfdecyf](https://github.com/cyfdecyf) - COW author
