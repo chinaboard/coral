@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"newbufio"
+	"coral/bufio"
 )
 
 func TestASCIIToUpper(t *testing.T) {

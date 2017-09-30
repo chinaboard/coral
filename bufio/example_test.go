@@ -5,8 +5,8 @@
 package bufio_test
 
 import (
+	"coral/bufio"
 	"fmt"
-	"github.com/cyfdecyf/bufio"
 	"os"
 	"strconv"
 	"strings"

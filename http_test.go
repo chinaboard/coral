@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"newbufio"
+	"coral/bufio"
 	"strings"
 	"testing"
 	"time"

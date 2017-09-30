@@ -6,8 +6,8 @@ package bufio_test
 
 import (
 	"bytes"
+	. "coral/bufio"
 	"errors"
-	. "github.com/cyfdecyf/bufio"
 	"io"
 	"strings"
 	"testing"
