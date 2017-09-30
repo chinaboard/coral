@@ -523,16 +523,16 @@ func init() {
 }
 
 func initConfig() {
+	ccData, err := initLocalConfig()
+	if err != nil {
+		ccData = syncConfigData()
+	}
 
-	configData := syncConfigData()
+	initLinesConfig(ccData.Config)
 
-	remoteConfig := configData.Config
-
-	initLinesConfig(remoteConfig)
-
-	initDomainList(configData.DirectDomain, domainTypeDirect)
-	initDomainList(configData.ProxyDomain, domainTypeProxy)
-	initDomainList(configData.RejectDomain, domainTypeReject)
+	initDomainList(ccData.DirectDomain, domainTypeDirect)
+	initDomainList(ccData.ProxyDomain, domainTypeProxy)
+	initDomainList(ccData.RejectDomain, domainTypeReject)
 
 	checkConfig()
 }
