@@ -1,7 +1,9 @@
 package main
 
 import (
+	"coral/monocloud"
 	"errors"
+	"fmt"
 	"net"
 	"reflect"
 	"strconv"
@@ -34,6 +36,14 @@ var defaultTunnelAllowedPort = []string{
 }
 
 type Config struct {
+	UseMonoCloud       bool   //use monocloud service
+	MonoCloudLoginName string // monocloud username
+	MonoCloudPassword  string // monocloud password
+
+	MergeConfig bool //merge monocloud & local config
+
+	RemoteConfigUrl string //remoteConfig url  http get
+
 	LogFile     string          // path for log file
 	JudgeByIP   bool            // if false only use DomainType
 	DeniedLocal bool            // DeniedLocalAddresses
@@ -509,7 +519,33 @@ func (p configParser) ParseKey(val string) {
 	config.Key = val
 }
 
+// monocloud
+// userinfo
+func (p configParser) ParseUseMonoCloud(val string) {
+	config.UseMonoCloud = parseBool(val, "UseMonoCloud")
+}
+
+func (p configParser) ParseMonoCloudLoginName(val string) {
+	config.MonoCloudLoginName = val
+}
+
+func (p configParser) ParseMonoCloudPassword(val string) {
+	config.MonoCloudPassword = val
+}
+
+func (p configParser) ParseMergeConfig(val string) {
+	config.MergeConfig = parseBool(val, "MergeConfig")
+}
+
+//getRemoteConcig
+func (p configParser) ParseRemoteConfigUrl(val string) {
+	config.RemoteConfigUrl = val
+}
+
 func init() {
+
+	config.UseMonoCloud = true
+
 	config.JudgeByIP = true
 	config.DeniedLocal = true
 	config.TunnelAllowed = true
@@ -523,12 +559,54 @@ func init() {
 }
 
 func initConfig() {
-	ccData, err := initLocalConfig()
+
+	ccData, err := getLocalConfig()
 	if err != nil {
-		ccData = syncConfigData()
+		Fatal("Error opening config file:", err)
 	}
 
+	var localProxy []string
+	for k, v := range ccData.Config {
+		v = strings.TrimSpace(v)
+		if strings.Index(v, "proxy") == 0 {
+			localProxy = append(localProxy, v)
+			ccData.Config[k] = fmt.Sprintf("#%s", v)
+		}
+	}
+	//no Proxy
 	initLinesConfig(ccData.Config)
+
+	var remoteProxyList []string
+	if config.RemoteConfigUrl != "" {
+		remoteConfig := getRemoteConfig(config.RemoteConfigUrl)
+		if remoteConfig != nil {
+
+			initLinesConfig(remoteConfig.Config)
+
+			initDomainList(remoteConfig.DirectDomain, domainTypeDirect)
+			initDomainList(remoteConfig.ProxyDomain, domainTypeProxy)
+			initDomainList(remoteConfig.RejectDomain, domainTypeReject)
+
+			debug.Println("Init remote config:", config.RemoteConfigUrl)
+			return
+		}
+	}
+
+	//get proxyData
+	if config.UseMonoCloud {
+		remoteProxyList, err = monocloud.GetUpstreamConfig(config.MonoCloudLoginName, config.MonoCloudPassword)
+		if err != nil {
+			errl.Println("Error get MonoCloud config:", err)
+		}
+		//monoProxy
+		initLinesConfig(remoteProxyList)
+		debug.Println("Init Monocloud servers:", len(remoteProxyList))
+	}
+
+	if !config.UseMonoCloud || config.MergeConfig {
+		initLinesConfig(localProxy)
+		debug.Println("Init localProxy servers:", len(localProxy))
+	}
 
 	initDomainList(ccData.DirectDomain, domainTypeDirect)
 	initDomainList(ccData.ProxyDomain, domainTypeProxy)

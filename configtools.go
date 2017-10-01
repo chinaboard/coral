@@ -17,9 +17,9 @@ type conifgData struct {
 
 var configData conifgData
 
-func syncConfigData() *conifgData {
+func getRemoteConfig(url string) *conifgData {
 
-	remoteData := get("http://localhost:12345/config")
+	remoteData := get(url)
 
 	json.Unmarshal(remoteData, &configData)
 
@@ -40,15 +40,17 @@ func get(url string) []byte {
 	return body
 }
 
-func initLocalConfig() (*conifgData, error) {
+func getLocalConfig() (*conifgData, error) {
 
 	if err := isFileExists(getCcFile()); err != nil {
 		return nil, err
 	}
+
 	configData.Config = getLocalFile(getCcFile())
 	configData.DirectDomain = getLocalFile(getDirectFile())
 	configData.ProxyDomain = getLocalFile(getProxyFile())
 	configData.RejectDomain = getLocalFile(getRejectFile())
+
 	return &configData, nil
 }
 
@@ -56,7 +58,8 @@ func getLocalFile(filePath string) (lines []string) {
 	debug.Println("File:", filePath)
 	f, err := os.Open(filePath)
 	if err != nil {
-		Fatal("Error opening config file:", err)
+		errl.Println("Error opening config file:", err)
+		return nil
 	}
 
 	IgnoreUTF8BOM(f)
