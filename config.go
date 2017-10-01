@@ -603,7 +603,7 @@ func initConfig() {
 		debug.Println("Init Monocloud servers:", len(remoteProxyList))
 	}
 
-	if !config.UseMonoCloud || config.MergeConfig {
+	if !config.UseMonoCloud || config.MergeConfig || err != nil {
 		initLinesConfig(localProxy)
 		debug.Println("Init localProxy servers:", len(localProxy))
 	}
