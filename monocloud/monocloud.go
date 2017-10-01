@@ -13,6 +13,11 @@ import (
 )
 
 const (
+	clientId     string = ""
+	clientSecret string = ""
+)
+
+const (
 	apiUrl  string = "https://monocloud.net/"
 	baseUrl string = apiUrl + "api/"
 )
@@ -82,8 +87,8 @@ func GetUpstreamConfig(username, password string) ([]string, error) {
 func getAccessToken(username, password string, needNewToken bool) error {
 	ctx := context.Background()
 	conf := &oauth2.Config{
-		ClientID:     "",
-		ClientSecret: "",
+		ClientID:     clientId,
+		ClientSecret: clientSecret,
 		Endpoint:     MonoCloudEndpoint,
 	}
 
@@ -94,8 +99,12 @@ func getAccessToken(username, password string, needNewToken bool) error {
 	tokenSource := conf.TokenSource(ctx, token)
 
 	newToken, err := tokenSource.Token()
+
 	if needNewToken || err != nil {
-		log.Println(err)
+
+		if err != nil {
+			log.Println(err)
+		}
 		newToken, err = conf.PasswordCredentialsToken(ctx, username, password)
 		if err != nil {
 			return err
@@ -104,6 +113,7 @@ func getAccessToken(username, password string, needNewToken bool) error {
 
 	if token == nil || newToken.AccessToken != token.AccessToken {
 		fs.Write(newToken)
+		tokenSource = conf.TokenSource(ctx, newToken)
 		log.Println("Saved new token:", newToken.AccessToken)
 	}
 
