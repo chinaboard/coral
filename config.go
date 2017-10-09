@@ -465,23 +465,14 @@ func (p configParser) ParseKey(val string) {
 	option.Key = val
 }
 
-// monocloud
-// userinfo
-
-func init() {
+func initConfig() {
 
 	option.JudgeByIP = true
-
 	option.DeniedLocal = true
-
 	option.TunnelAllowed = true
-
 	option.AuthTimeout = 2 * time.Hour
 
 	configure.InitOption()
-}
-
-func initConfig() {
 
 	config := configure.AllConfig
 

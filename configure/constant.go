@@ -37,7 +37,7 @@ var DefaultTunnelAllowedPort = []string{
 
 var IgnoreOption = map[string]bool{
 	"ConfigType":         true,
-	"RemoteFullUrl":      true,
+	"RemoteUrl":          true,
 	"MonoCloudLoginName": true,
 	"MonoCloudPassword":  true,
 }

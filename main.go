@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	fmt.Printf(`Coral Proxy %s`, version)
+	fmt.Println("Coral Proxy ", version)
 	fmt.Println()
 
 	initConfig()
