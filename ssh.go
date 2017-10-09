@@ -17,7 +17,7 @@ func SshRunning(socksServer string) bool {
 }
 
 func runOneSSH(server string) {
-	// config parsing canonicalize sshServer config value
+	// option parsing canonicalize sshServer option value
 	arr := strings.SplitN(server, ":", 3)
 	sshServer, localPort, sshPort := arr[0], arr[1], arr[2]
 	alreadyRunPrinted := false
@@ -47,7 +47,7 @@ func runOneSSH(server string) {
 }
 
 func runSSH() {
-	for _, server := range config.SshServer {
+	for _, server := range option.SshServer {
 		go runOneSSH(server)
 	}
 }

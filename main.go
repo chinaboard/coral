@@ -20,12 +20,12 @@ func main() {
 
 	initUpstreamPool()
 
-	if config.JudgeByIP {
+	if option.JudgeByIP {
 		initCNIPData()
 	}
 
-	if config.Core > 0 {
-		runtime.GOMAXPROCS(config.Core)
+	if option.Core > 0 {
+		runtime.GOMAXPROCS(option.Core)
 	}
 
 	go runSSH()

@@ -1,4 +1,4 @@
-package monocloud
+package configure
 
 import (
 	"encoding/json"

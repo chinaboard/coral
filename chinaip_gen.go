@@ -4,7 +4,7 @@
 package main
 
 import (
-	"coral/bufio"
+	"github.com/chinaboard/coral/bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"

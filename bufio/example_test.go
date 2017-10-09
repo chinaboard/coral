@@ -5,7 +5,7 @@
 package bufio_test
 
 import (
-	"coral/bufio"
+	"github.com/chinaboard/coral/bufio"
 	"fmt"
 	"os"
 	"strconv"

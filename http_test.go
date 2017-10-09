@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"coral/bufio"
+	"github.com/chinaboard/coral/bufio"
 	"strings"
 	"testing"
 	"time"

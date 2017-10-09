@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"coral/bufio"
-	"coral/leakybuf"
+	"github.com/chinaboard/coral/bufio"
+	"github.com/chinaboard/coral/leakybuf"
 	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
 )
 
@@ -92,7 +92,7 @@ var (
 type Proxy interface {
 	Serve(*sync.WaitGroup)
 	Addr() string
-	toString() string // for upgrading config
+	ToString() string // for upgrading option
 }
 
 var listenProxy []Proxy
@@ -116,7 +116,7 @@ func newHttpProxy(addr, addrInPAC string, proto string) *httpProxy {
 	return &httpProxy{addr, port, addrInPAC, proto}
 }
 
-func (proxy *httpProxy) toString() string {
+func (proxy *httpProxy) ToString() string {
 	if proxy.addrInPAC != "" {
 		return fmt.Sprintf("listen = %s://%s %s", proxy.proto, proxy.addr, proxy.addrInPAC)
 	} else {
@@ -165,7 +165,7 @@ func (hp *httpProxy) Serve(wg *sync.WaitGroup) {
 	}()
 
 	if hp.proto == "https" {
-		cert, err := tls.LoadX509KeyPair(config.Cert, config.Key)
+		cert, err := tls.LoadX509KeyPair(option.Cert, option.Key)
 		if err != nil {
 			fmt.Println("cert error:", err.Error())
 			return
@@ -229,7 +229,7 @@ func newCoralProxy(method, passwd, addr string) *coralProxy {
 	return &coralProxy{addr, method, passwd, cipher}
 }
 
-func (cp *coralProxy) toString() string {
+func (cp *coralProxy) ToString() string {
 	method := cp.method
 	if method == "" {
 		method = "table"
@@ -489,8 +489,8 @@ func (c *clientConn) serve() {
 			authed = true
 		}
 
-		if config.TunnelAllowed {
-			_, found := config.TunnelAllowedPort[r.URL.Port]
+		if option.TunnelAllowed {
+			_, found := option.TunnelAllowedPort[r.URL.Port]
 			if r.isConnect && !found {
 				sendErrorPage(c, statusForbidden, "Forbidden tunnel port",
 					genErrMsg(&r, nil, "Please contact proxy admin."))
@@ -720,7 +720,7 @@ func (c *clientConn) getServerConn(r *Request) (*serverConn, error) {
 
 func connectDirect2(url *URL, recursive bool) (net.Conn, error) {
 
-	if config.DeniedLocal {
+	if option.DeniedLocal {
 		addrs, er := net.LookupHost(url.Host)
 		if er == nil {
 			for _, addr := range addrs {
@@ -759,7 +759,7 @@ func isErrTimeout(err error) bool {
 }
 
 func isHttpErrCode(err error) bool {
-	if config.HttpErrorCode <= 0 {
+	if option.HttpErrorCode <= 0 {
 		return false
 	}
 	if err == CustomHttpErr {

@@ -46,7 +46,7 @@ func TestTunnelAllowedPort(t *testing.T) {
 	}
 
 	for _, td := range testData {
-		allowed := config.TunnelAllowedPort[td.port]
+		allowed := option.TunnelAllowedPort[td.port]
 		if allowed != td.allowed {
 			t.Errorf("port %s allowed %v, got %v\n", td.port, td.allowed, allowed)
 		}

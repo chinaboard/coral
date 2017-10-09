@@ -47,7 +47,7 @@ func (domainList *DomainList) judge(url *URL) (domainType DomainType) {
 		return domainTypeProxy
 	}
 
-	if !config.JudgeByIP {
+	if !option.JudgeByIP {
 		return domainTypeProxy
 	}
 

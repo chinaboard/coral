@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"coral/color"
+	"github.com/chinaboard/coral/color"
 )
 
 type infoLogging bool
@@ -50,8 +50,8 @@ func init() {
 
 func initLog() {
 	logFile = os.Stdout
-	if config.LogFile != "" {
-		if f, err := os.OpenFile(expandTilde(config.LogFile),
+	if option.LogFile != "" {
+		if f, err := os.OpenFile(expandTilde(option.LogFile),
 			os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600); err != nil {
 			fmt.Printf("Can't open log file, logging to stdout: %v\n", err)
 		} else {

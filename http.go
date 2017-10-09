@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"coral/bufio"
+	"github.com/chinaboard/coral/bufio"
 	"errors"
 	"fmt"
 	"net"
@@ -582,7 +582,7 @@ func parseRequest(c *clientConn, r *Request) (err error) {
 	// debug.Printf("Request line %s", s)
 
 	r.reset()
-	if config.saveReqLine {
+	if option.SaveReqLine {
 		r.raw.Write(s)
 		r.reqLnStart = len(s)
 	}
@@ -603,7 +603,7 @@ func parseRequest(c *clientConn, r *Request) (err error) {
 	r.Header.Host = r.URL.HostPort // If Header.Host is set, parseHost will just return.
 	if r.Method == "CONNECT" {
 		r.isConnect = true
-		if bool(dbgRq) && verbose && !config.saveReqLine {
+		if bool(dbgRq) && verbose && !option.SaveReqLine {
 			r.raw.Write(s)
 		}
 	} else {
@@ -692,8 +692,8 @@ func parseResponse(sv *serverConn, r *Request, rp *Response) (err error) {
 		return err
 	}
 
-	//Check for http error code from config file
-	if config.HttpErrorCode > 0 && rp.Status == config.HttpErrorCode {
+	//Check for http error code from option file
+	if option.HttpErrorCode > 0 && rp.Status == option.HttpErrorCode {
 		errl.Println("Requested http code is raised")
 		return CustomHttpErr
 	}

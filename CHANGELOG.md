@@ -1,4 +1,9 @@
 ## 更新说明
+- 2017-10-9 Version 1.2.0
+
+       * 重写配置文件
+       * MonoCloud支持Tls与SS分开获取
+
 - 2017-10-1 Version 1.1.0
 
        * 支持MonoCloud提供的服务(仅获取proxy信息)

@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"coral/bufio"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/chinaboard/coral/bufio"
 	"net"
 	"os"
 	"strconv"
@@ -150,9 +150,9 @@ func loadUserPasswdFile(file string) {
 }
 
 func initAuth() {
-	if config.UserPasswd != "" ||
-		config.UserPasswdFile != "" ||
-		config.AllowedClient != "" {
+	if option.UserPasswd != "" ||
+		option.UserPasswdFile != "" ||
+		option.AllowedClient != "" {
 		auth.required = true
 	} else {
 		return
@@ -160,11 +160,11 @@ func initAuth() {
 
 	auth.user = make(map[string]*authUser)
 
-	addUserPasswd(config.UserPasswd)
-	loadUserPasswdFile(config.UserPasswdFile)
-	parseAllowedClient(config.AllowedClient)
+	addUserPasswd(option.UserPasswd)
+	loadUserPasswdFile(option.UserPasswdFile)
+	parseAllowedClient(option.AllowedClient)
 
-	auth.authed = NewTimeoutSet(time.Duration(config.AuthTimeout) * time.Hour)
+	auth.authed = NewTimeoutSet(time.Duration(option.AuthTimeout) * time.Hour)
 
 	rawTemplate := "HTTP/1.1 407 Proxy Authentication Required\r\n" +
 		"Proxy-Authenticate: Digest realm=\"" + authRealm + "\", nonce=\"{{.Nonce}}\", qop=\"auth\"\r\n" +

@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/chinaboard/coral/configure"
 	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
 )
 
@@ -22,7 +23,7 @@ import (
 type UpstreamProxy interface {
 	connect(*URL) (net.Conn, error)
 	getServer() string // for use in updating server latency
-	toString() string  // for upgrading config
+	ToString() string  // for upgrading option
 }
 
 // Interface for different proxy selection strategy.
@@ -34,7 +35,7 @@ type UpstreamPool interface {
 	connect(*URL) (net.Conn, error)
 }
 
-// Init upstreamProxy to be backup pool. So config parsing have a pool to add
+// Init upstreamProxy to be backup pool. So option parsing have a pool to add
 // upstream servers.
 var upstreamProxy UpstreamPool = &backupUpstreamPool{}
 
@@ -50,16 +51,16 @@ func initUpstreamPool() {
 		info.Println("no upstream proxy server")
 		return
 	}
-	if len(backPool.upstream) == 1 && config.LoadBalance != loadBalanceBackup {
+	if len(backPool.upstream) == 1 && option.LoadBalance != configure.LoadBalanceBackup {
 		debug.Println("only 1 upstream, no need for load balance")
-		config.LoadBalance = loadBalanceBackup
+		option.LoadBalance = configure.LoadBalanceBackup
 	}
 
-	switch config.LoadBalance {
-	case loadBalanceHash:
+	switch option.LoadBalance {
+	case configure.LoadBalanceHash:
 		debug.Println("hash upstream pool", len(backPool.upstream))
 		upstreamProxy = &hashUpstreamPool{*backPool}
-	case loadBalanceLatency:
+	case configure.LoadBalanceLatency:
 		debug.Println("latency upstream pool", len(backPool.upstream))
 		go updateUpstreamProxyLatency()
 		upstreamProxy = newLatencyUpstreamPool(backPool.upstream)
@@ -74,6 +75,8 @@ func printUpstreamProxy(upstream []UpstreamWithFail) {
 			info.Println("shadowsocks: ", proxy.server)
 		case *httpUpstream:
 			info.Println("http upstream: ", proxy.server)
+		case *httpsUpstream:
+			info.Println("https upstream: ", proxy.server)
 		case *socksUpstream:
 			info.Println("socks upstream: ", proxy.server)
 		case *coralUpstream:
@@ -88,7 +91,7 @@ type UpstreamWithFail struct {
 }
 
 // Backup load balance strategy:
-// Select proxy in the order they appear in config.
+// Select proxy in the order they appear in option.
 type backupUpstreamPool struct {
 	upstream []UpstreamWithFail
 }
@@ -313,7 +316,7 @@ func updateUpstreamProxyLatency() {
 
 type httpsUpstream struct {
 	server     string
-	userPasswd string // for upgrade config
+	userPasswd string // for upgrade option
 	authHeader []byte
 }
 
@@ -334,7 +337,7 @@ func (hp *httpsUpstream) getServer() string {
 	return hp.server
 }
 
-func (hp *httpsUpstream) toString() string {
+func (hp *httpsUpstream) ToString() string {
 	if hp.userPasswd != "" {
 		return fmt.Sprintf("proxy = https://%s@%s", hp.userPasswd, hp.server)
 	} else {
@@ -369,7 +372,7 @@ func (hp *httpsUpstream) connect(url *URL) (net.Conn, error) {
 // http upstream proxy
 type httpUpstream struct {
 	server     string
-	userPasswd string // for upgrade config
+	userPasswd string // for upgrade option
 	authHeader []byte
 }
 
@@ -390,7 +393,7 @@ func (hp *httpUpstream) getServer() string {
 	return hp.server
 }
 
-func (hp *httpUpstream) toString() string {
+func (hp *httpUpstream) ToString() string {
 	if hp.userPasswd != "" {
 		return fmt.Sprintf("proxy = http://%s@%s", hp.userPasswd, hp.server)
 	} else {
@@ -422,7 +425,7 @@ func (hp *httpUpstream) connect(url *URL) (net.Conn, error) {
 // shadowsocks upstream proxy
 type shadowsocksUpstream struct {
 	server string
-	method string // method and passwd are for upgrade config
+	method string // method and passwd are for upgrade option
 	passwd string
 	cipher *ss.Cipher
 }
@@ -436,9 +439,9 @@ func (s shadowsocksConn) String() string {
 	return "shadowsocks proxy " + s.upstream.server
 }
 
-// In order to use upstream proxy in the order specified in the config file, we
+// In order to use upstream proxy in the order specified in the option file, we
 // insert an uninitialized proxy into upstream proxy list, and initialize it
-// when all its config have been parsed.
+// when all its option have been parsed.
 
 func newShadowsocksUpstream(server string) *shadowsocksUpstream {
 	return &shadowsocksUpstream{server: server}
@@ -448,7 +451,7 @@ func (sp *shadowsocksUpstream) getServer() string {
 	return sp.server
 }
 
-func (sp *shadowsocksUpstream) toString() string {
+func (sp *shadowsocksUpstream) ToString() string {
 	method := sp.method
 	if method == "" {
 		method = "table"
@@ -506,7 +509,7 @@ func (cp *coralUpstream) getServer() string {
 	return cp.server
 }
 
-func (cp *coralUpstream) toString() string {
+func (cp *coralUpstream) ToString() string {
 	method := cp.method
 	if method == "" {
 		method = "table"
@@ -571,7 +574,7 @@ func (sp *socksUpstream) getServer() string {
 	return sp.server
 }
 
-func (sp *socksUpstream) toString() string {
+func (sp *socksUpstream) ToString() string {
 	return fmt.Sprintf("proxy = socks5://%s", sp.server)
 }
 

@@ -1,4 +1,4 @@
-package monocloud
+package configure
 
 import (
 	"context"
@@ -13,18 +13,18 @@ import (
 )
 
 const (
-	clientId     string = ""
-	clientSecret string = ""
+	baseUrl string = "https://monocloud.net/"
+	apiUrl  string = baseUrl + "api/"
 )
 
-const (
-	apiUrl  string = "https://monocloud.net/"
-	baseUrl string = apiUrl + "api/"
-)
+var MonoCloudEndpoint = oauth2.Endpoint{TokenURL: baseUrl + "oauth/token"}
 
-var MonoCloudEndpoint = oauth2.Endpoint{TokenURL: apiUrl + "oauth/token"}
+var UserInfo struct {
+	Username string
+	Password string
+}
 
-type toString interface {
+type MonoCloudServer interface {
 	ToString() string
 }
 
@@ -37,6 +37,20 @@ type DarkCloudServer struct {
 	Enable     int    `json:"enable"`
 	SSR        int    `json:"ssr"`
 	Location   string `json:"location"`
+}
+
+type HttpsServer struct {
+	HostName string `json:hostname`
+	Location string `json:"location"`
+}
+
+type Servers struct {
+	SS  []string
+	Tls []string
+}
+
+func (tls *HttpsServer) ToString() string {
+	return fmt.Sprintf("proxy = https://%s:%s@%s", UserInfo.Username, UserInfo.Password, strings.Trim(tls.HostName, "https://"))
 }
 
 func (dcs *DarkCloudServer) ToString() string {
@@ -55,13 +69,13 @@ type Plan struct {
 
 var client *http.Client
 
-func GetUpstreamConfig(username, password string) ([]string, error) {
+func getMonoCloudServers() (*Servers, error) {
 
 	var err error
 	serviceId := -1
 
 	for i := 0; i < 2; i++ {
-		err = getAccessToken(username, password, i != 0)
+		err = getAccessToken(UserInfo.Username, UserInfo.Password, i != 0)
 		if err != nil {
 			return nil, err
 		}
@@ -75,17 +89,17 @@ func GetUpstreamConfig(username, password string) ([]string, error) {
 		return nil, err
 	}
 
-	servers, err := getSsInfo(serviceId)
+	var servers Servers
+	servers.SS, err = getSsInfo(serviceId)
+	servers.Tls, err = getTlsInfo(serviceId)
 
-	if err != nil {
-		return nil, err
-	}
-	return servers, nil
+	return &servers, err
 }
 
 //step 1 get access_token
 func getAccessToken(username, password string, needNewToken bool) error {
 	ctx := context.Background()
+	clientId, clientSecret := getSecret()
 	conf := &oauth2.Config{
 		ClientID:     clientId,
 		ClientSecret: clientSecret,
@@ -154,7 +168,6 @@ func getServiceId() (int, error) {
 	return serviceId, nil
 }
 
-//step 3 get ssInfo
 func getSsInfo(serviceId int) ([]string, error) {
 
 	jsonData, err := getData(getUrl("shadowsocks/" + strconv.Itoa(serviceId)))
@@ -182,6 +195,33 @@ func getSsInfo(serviceId int) ([]string, error) {
 	return result, nil
 }
 
+func getTlsInfo(serviceId int) ([]string, error) {
+
+	jsonData, err := getData(getUrl("tls/" + strconv.Itoa(serviceId)))
+
+	if err != nil {
+		return nil, err
+	}
+	var servers []HttpsServer
+
+	err = json.Unmarshal(jsonData, &servers)
+
+	if err != nil {
+		return nil, err
+	}
+	log.Println("Get Servers:", len(servers))
+
+	var result []string
+	for _, server := range servers {
+		if !strings.Contains(server.Location, "中国大陆出口") {
+			result = append(result, server.ToString())
+		}
+	}
+
+	log.Println("OK Servers:", len(result))
+	return result, nil
+}
+
 func getData(url string) ([]byte, error) {
 
 	resp, err := client.Get(url)
@@ -195,5 +235,9 @@ func getData(url string) ([]byte, error) {
 }
 
 func getUrl(method string) string {
-	return fmt.Sprintf("%s%s", baseUrl, method)
+	return fmt.Sprintf("%s%s", apiUrl, method)
+}
+
+func getSecret() (string, string) {
+	return monoCloud_ClientId, monoCloud_ClientSecret
 }

@@ -1,9 +1,8 @@
 package main
 
 import (
-	"coral/monocloud"
 	"errors"
-	"fmt"
+	"github.com/chinaboard/coral/configure"
 	"net"
 	"reflect"
 	"strconv"
@@ -12,74 +11,21 @@ import (
 )
 
 const (
-	version           = "1.1.0"
+	version           = "1.2.0"
 	defaultListenAddr = "127.0.0.1:5438"
 )
 
-type LoadBalanceMode byte
-
-const (
-	loadBalanceBackup LoadBalanceMode = iota
-	loadBalanceHash
-	loadBalanceLatency
-)
-
 // allow the same tunnel ports as polipo
-var defaultTunnelAllowedPort = []string{
-	"22", "80", "443", // ssh, http, https
-	"873",                      // rsync
-	"143", "220", "585", "993", // imap, imap3, imap4-ssl, imaps
-	"109", "110", "473", "995", // pop2, pop3, hybrid-pop, pop3s
-	"5222", "5269", // jabber-client, jabber-server
-	"5223",                 // jabber-google
-	"2401", "3690", "9418", // cvspserver, svn, git
-}
 
-type Config struct {
-	UseMonoCloud       bool   //use monocloud service
-	MonoCloudLoginName string // monocloud username
-	MonoCloudPassword  string // monocloud password
-
-	MergeConfig bool //merge monocloud & local config
-
-	RemoteConfigUrl string //remoteConfig url  http get
-
-	LogFile     string          // path for log file
-	JudgeByIP   bool            // if false only use DomainType
-	DeniedLocal bool            // DeniedLocalAddresses
-	LoadBalance LoadBalanceMode // select load balance mode
-
-	TunnelAllowed     bool
-	TunnelAllowedPort map[string]bool // allowed ports to create tunnel
-
-	SshServer []string
-
-	// authenticate client
-	UserPasswd     string
-	UserPasswdFile string // file that contains user:passwd:[port] pairs
-	AllowedClient  string
-	AuthTimeout    time.Duration
-
-	Core int
-
-	HttpErrorCode int
-
-	// not configurable in config file
-	PrintVer bool
-
-	// not config option
-	saveReqLine bool // for http and coral upstream, should save request line from client
-	Cert        string
-	Key         string
-}
-
-var config Config
+var option = configure.Option
 
 func parseBool(v, msg string) bool {
 	switch v {
 	case "true":
 		return true
 	case "false":
+		return false
+	case "0":
 		return false
 	default:
 		Fatalf("%s should be true or false\n", msg)
@@ -119,7 +65,7 @@ func isUserPasswdValid(val string) bool {
 // proxyParser provides functions to parse different types of upstream proxy
 type proxyParser struct{}
 
-func (p proxyParser) ProxySocks5(val string) {
+func (pp proxyParser) ProxySocks5(val string) {
 	if err := checkServerAddr(val); err != nil {
 		Fatal("upstream socks server", err)
 	}
@@ -141,7 +87,7 @@ func (pp proxyParser) ProxyHttp(val string) {
 		Fatal("upstream http server", err)
 	}
 
-	config.saveReqLine = true
+	option.SaveReqLine = true
 
 	upstream := newHttpUpstream(server)
 	upstream.initAuth(userPasswd)
@@ -163,7 +109,7 @@ func (pp proxyParser) ProxyHttps(val string) {
 		Fatal("upstream http server", err)
 	}
 
-	config.saveReqLine = true
+	option.SaveReqLine = true
 
 	upstream := newHttpsUpstream(server)
 	upstream.initAuth(userPasswd)
@@ -217,7 +163,7 @@ func (pp proxyParser) ProxyCoral(val string) {
 		Fatal("upstream coral server", err)
 	}
 
-	config.saveReqLine = true
+	option.SaveReqLine = true
 	upstream := newCoralUpstream(server, method, passwd)
 	upstreamProxy.add(upstream)
 }
@@ -251,7 +197,7 @@ func (lp listenParser) ListenCoral(val string) {
 	addListenProxy(newCoralProxy(method, passwd, addr))
 }
 
-// configParser provides functions to parse options in config file.
+// configParser provides functions to parse options in option file.
 type configParser struct{}
 
 func (p configParser) ParseProxy(val string) {
@@ -303,7 +249,7 @@ func (p configParser) ParseListen(val string) {
 }
 
 func (p configParser) ParseLogFile(val string) {
-	config.LogFile = expandTilde(val)
+	option.LogFile = expandTilde(val)
 }
 
 func (p configParser) ParseAddrInPAC(val string) {
@@ -335,7 +281,7 @@ func (p configParser) ParseTunnelAllowedPort(val string) {
 		if _, err := strconv.Atoi(s); err != nil {
 			Fatal("tunnel allowed ports", err)
 		}
-		config.TunnelAllowedPort[s] = true
+		option.TunnelAllowedPort[s] = true
 	}
 }
 
@@ -357,7 +303,7 @@ func (p configParser) ParseSshServer(val string) {
 	}
 	// add created socks server
 	p.ParseSocksUpstream("127.0.0.1:" + arr[1])
-	config.SshServer = append(config.SshServer, val)
+	option.SshServer = append(option.SshServer, val)
 }
 
 var httpProtocol struct {
@@ -370,7 +316,7 @@ func (p configParser) ParseHttpUpstream(val string) {
 	if err := checkServerAddr(val); err != nil {
 		Fatal("upstream http server", err)
 	}
-	config.saveReqLine = true
+	option.SaveReqLine = true
 	httpProtocol.upstream = newHttpUpstream(val)
 	upstreamProxy.add(httpProtocol.upstream)
 	httpProtocol.serverCnt++
@@ -390,11 +336,11 @@ func (p configParser) ParseHttpUserPasswd(val string) {
 func (p configParser) ParseLoadBalance(val string) {
 	switch val {
 	case "backup":
-		config.LoadBalance = loadBalanceBackup
+		option.LoadBalance = configure.LoadBalanceBackup
 	case "hash":
-		config.LoadBalance = loadBalanceHash
+		option.LoadBalance = configure.LoadBalanceHash
 	case "latency":
-		config.LoadBalance = loadBalanceLatency
+		option.LoadBalance = configure.LoadBalanceLatency
 	default:
 		Fatalf("invalid loadBalance mode: %s\n", val)
 	}
@@ -465,12 +411,12 @@ func checkShadowsocks() {
 	parser.ParseShadowSocks("")
 }
 
-// Put actual authentication related config parsing in auth.go, so config.go
+// Put actual authentication related option parsing in auth.go, so option.go
 // doesn't need to know the details of authentication implementation.
 
 func (p configParser) ParseUserPasswd(val string) {
-	config.UserPasswd = val
-	if !isUserPasswdValid(config.UserPasswd) {
+	option.UserPasswd = val
+	if !isUserPasswdValid(option.UserPasswd) {
 		Fatal("userPassword syntax wrong, should be in the form of user:passwd")
 	}
 }
@@ -480,137 +426,70 @@ func (p configParser) ParseUserPasswdFile(val string) {
 	if err != nil {
 		Fatal("userPasswdFile:", err)
 	}
-	config.UserPasswdFile = val
+	option.UserPasswdFile = val
 }
 
 func (p configParser) ParseAllowedClient(val string) {
-	config.AllowedClient = val
+	option.AllowedClient = val
 }
 
 func (p configParser) ParseAuthTimeout(val string) {
-	config.AuthTimeout = parseDuration(val, "authTimeout")
+	option.AuthTimeout = parseDuration(val, "authTimeout")
 }
 
 func (p configParser) ParseCore(val string) {
-	config.Core = parseInt(val, "core")
+	option.Core = parseInt(val, "core")
 }
 
 func (p configParser) ParseHttpErrorCode(val string) {
-	config.HttpErrorCode = parseInt(val, "httpErrorCode")
+	option.HttpErrorCode = parseInt(val, "httpErrorCode")
 }
 
 func (p configParser) ParseJudgeByIP(val string) {
-	config.JudgeByIP = parseBool(val, "judgeByIP")
+	option.JudgeByIP = parseBool(val, "judgeByIP")
 }
 
 func (p configParser) ParseDeniedLocal(val string) {
-	config.DeniedLocal = parseBool(val, "DeniedLocal")
+	option.DeniedLocal = parseBool(val, "DeniedLocal")
 }
 
 func (p configParser) ParseTunnelAllowed(val string) {
-	config.TunnelAllowed = parseBool(val, "TunnelAllowed")
+	option.TunnelAllowed = parseBool(val, "TunnelAllowed")
 }
 
 func (p configParser) ParseCert(val string) {
-	config.Cert = val
+	option.Cert = val
 }
 
 func (p configParser) ParseKey(val string) {
-	config.Key = val
+	option.Key = val
 }
 
 // monocloud
 // userinfo
-func (p configParser) ParseUseMonoCloud(val string) {
-	config.UseMonoCloud = parseBool(val, "UseMonoCloud")
-}
-
-func (p configParser) ParseMonoCloudLoginName(val string) {
-	config.MonoCloudLoginName = val
-}
-
-func (p configParser) ParseMonoCloudPassword(val string) {
-	config.MonoCloudPassword = val
-}
-
-func (p configParser) ParseMergeConfig(val string) {
-	config.MergeConfig = parseBool(val, "MergeConfig")
-}
-
-//getRemoteConcig
-func (p configParser) ParseRemoteConfigUrl(val string) {
-	config.RemoteConfigUrl = val
-}
 
 func init() {
 
-	config.UseMonoCloud = true
+	option.JudgeByIP = true
 
-	config.JudgeByIP = true
-	config.DeniedLocal = true
-	config.TunnelAllowed = true
-	config.AuthTimeout = 2 * time.Hour
+	option.DeniedLocal = true
 
-	config.TunnelAllowedPort = make(map[string]bool)
+	option.TunnelAllowed = true
 
-	for _, port := range defaultTunnelAllowedPort {
-		config.TunnelAllowedPort[port] = true
-	}
+	option.AuthTimeout = 2 * time.Hour
+
+	configure.InitOption()
 }
 
 func initConfig() {
 
-	ccData, err := getLocalConfig()
-	if err != nil {
-		Fatal("Error opening config file:", err)
-	}
+	config := configure.AllConfig
 
-	var localProxy []string
-	for k, v := range ccData.Config {
-		v = strings.TrimSpace(v)
-		if strings.Index(v, "proxy") == 0 {
-			localProxy = append(localProxy, v)
-			ccData.Config[k] = fmt.Sprintf("#%s", v)
-		}
-	}
-	//no Proxy
-	initLinesConfig(ccData.Config)
+	initLinesConfig(config.Content)
 
-	var remoteProxyList []string
-	if config.RemoteConfigUrl != "" {
-		remoteConfig := getRemoteConfig(config.RemoteConfigUrl)
-		if remoteConfig != nil {
-
-			initLinesConfig(remoteConfig.Config)
-
-			initDomainList(remoteConfig.DirectDomain, domainTypeDirect)
-			initDomainList(remoteConfig.ProxyDomain, domainTypeProxy)
-			initDomainList(remoteConfig.RejectDomain, domainTypeReject)
-
-			debug.Println("Init remote config:", config.RemoteConfigUrl)
-			return
-		}
-	}
-
-	//get proxyData
-	if config.UseMonoCloud {
-		remoteProxyList, err = monocloud.GetUpstreamConfig(config.MonoCloudLoginName, config.MonoCloudPassword)
-		if err != nil {
-			errl.Println("Error get MonoCloud config:", err)
-		}
-		//monoProxy
-		initLinesConfig(remoteProxyList)
-		debug.Println("Init Monocloud servers:", len(remoteProxyList))
-	}
-
-	if !config.UseMonoCloud || config.MergeConfig || err != nil {
-		initLinesConfig(localProxy)
-		debug.Println("Init localProxy servers:", len(localProxy))
-	}
-
-	initDomainList(ccData.DirectDomain, domainTypeDirect)
-	initDomainList(ccData.ProxyDomain, domainTypeProxy)
-	initDomainList(ccData.RejectDomain, domainTypeReject)
+	initDomainList(config.DirectDomain, domainTypeDirect)
+	initDomainList(config.ProxyDomain, domainTypeProxy)
+	initDomainList(config.RejectDomain, domainTypeReject)
 
 	checkConfig()
 }
@@ -626,14 +505,20 @@ func initLinesConfig(lines []string) {
 
 		v := strings.SplitN(line, "=", 2)
 		if len(v) != 2 {
-			Fatal("config syntax error on line", index+1)
+			Fatal("option syntax error on line", index+1)
 		}
 		key, val := strings.TrimSpace(v[0]), strings.TrimSpace(v[1])
+
+		_, found := configure.IgnoreOption[key]
+		if found {
+			continue
+		}
 
 		methodName := "Parse" + strings.ToUpper(key[0:1]) + key[1:]
 		method := parser.MethodByName(methodName)
 		if method == zeroMethod {
-			Fatalf("no such option \"%s\"\n", key)
+			errl.Printf("no such option \"%s\"\n", key)
+			continue
 		}
 		// for backward compatibility, allow empty string in shadowMethod and logFile
 		if val == "" && key != "shadowMethod" && key != "logFile" {
@@ -644,7 +529,7 @@ func initLinesConfig(lines []string) {
 	}
 }
 
-// Must call checkConfig before using config.
+// Must call checkConfig before using option.
 func checkConfig() {
 	checkShadowsocks()
 	// listenAddr must be handled first, as addrInPAC dependends on this.
