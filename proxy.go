@@ -798,7 +798,6 @@ func (c *clientConn) connect(r *Request, direct bool) (srvconn net.Conn, err err
 		goto fail
 	}
 
-	// “我向来是不惮以最坏的恶意来揣测中国人的”
 	dbgPrintRq(c, r, false)
 	if srvconn, err = upstreamProxy.connect(r.URL); err == nil {
 		return
