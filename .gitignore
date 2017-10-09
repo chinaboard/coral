@@ -24,3 +24,5 @@ Coral.iml
 .glide/
 
 *.cache
+
+/configure/platform_monocloud_secret.go
