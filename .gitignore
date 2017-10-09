@@ -9,7 +9,7 @@ bin/
 Coral.iml
 
 # Binaries for programs and plugins
-*.exe
+coral.*
 *.dll
 *.so
 *.dylib

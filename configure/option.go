@@ -62,7 +62,6 @@ func InitOption() {
 type optionParser struct{}
 
 func (op optionParser) ParseLocal() {
-
 }
 
 func (op optionParser) ParseRemoteProxy() {

@@ -1,0 +1,181 @@
+#############################
+#
+# 配置文件中 # 开头的行为注释
+#
+# 示例配置文件中的值均为默认值
+#
+#############################
+# 选择配置类型
+#     Local:          使用本配置文件
+#     RemoteProxy:    仅获取远程Proxy列表
+#     RemoteFull:     获取完整远端配置
+#     MonoCloudAll:   使用所有MonoCloud的服务器
+#     MonoCloudSS:    仅使用MonoCloud的SS
+#     MonoCloudTls:   仅使用MonoCloud的Tls
+#
+ConfigType = Local
+#############################
+#
+# MonoCloud登录账号
+MonoCloudLoginName = xxxxx
+#
+# MonoCloud登录密码
+MonoCloudPassword = bbbb
+#
+#############################
+# 自己定义远程配置文件URL获取，远端返回格式为json
+# Full:
+# {
+#     "Content": [],	    //cc中的内容
+#     "DirectDomain": [],	//direct内容
+#     "ProxyDomain": [],	//proxy内容
+#     "RejectDomain": []	//reject内容
+# }
+# Proxy:
+# ["proxy = socks5://127.0.0.1:1080","http://127.0.0.1:8080"]
+#
+#RemoteUrl = ""
+#
+#############################
+#
+# 代理服务器监听地址，重复多次来指定多个监听地址，语法：
+#
+#   listen = protocol://[optional@]server_address:server_port
+#
+# 支持的 protocol 如下：
+#
+# HTTP (提供 http 代理):
+#   listen = http://127.0.0.1:5438
+#
+#   上面的例子中，Coral 生成的 PAC url 为 http://127.0.0.1:5438/pac
+#
+# HTTPS (提供 https 代理):
+#   listen = https://example.com:443
+#   cert = /path/to/cert.pem
+#   key = /path/to/key.pem
+#
+#   上面的例子中，Coral 生成的 PAC url 为 https://example.com:443/pac
+#
+# Coral (需两个 Coral 服务器配合使用):
+#   listen = Coral://encrypt_method:password@1.2.3.4:5678
+#
+#   若 1.2.3.4:5678 在国外，位于国内的 Coral 配置其为二级代理后，两个 Coral 之间可以
+#   通过加密连接传输 http 代理流量。采用与 shadowsocks 相同的加密方式。
+#
+# 其他说明：
+# - 若 server_address 为 0.0.0.0，监听本机所有 IP 地址
+# - 可以用如下语法指定 PAC 中返回的代理服务器地址（当使用端口映射将 http 代理提供给外网时使用）
+#   listen = http://127.0.0.1:5438 1.2.3.4:5678
+#
+listen = http://127.0.0.1:5438
+
+#############################
+# 仅通过IP判断是否直连，默认仅国外IP走代理，设置false后，direct.txt名单中的地址优先采取直连方式，访问不了会再走代理
+#############################
+#judgeByIP = true
+
+# 日志文件路径，如不指定则输出到 stdout
+#logFile =
+
+# 指定多个二级代理时使用的负载均衡策略，可选策略如下
+#
+#   backup:  默认策略，优先使用第一个指定的二级代理，其他仅作备份使用
+#   hash:    根据请求的 host name，优先使用 hash 到的某一个二级代理
+#   latency: 优先选择连接延迟最低的二级代理
+#
+# 一个二级代理连接失败后会依次尝试其他二级代理
+# 失败的二级代理会以一定的概率再次尝试使用，因此恢复后会重新启用
+#loadBalance = backup
+
+#############################
+# 指定二级代理
+#############################
+
+# 二级代理统一使用下列语法指定：
+#
+#   proxy = protocol://[authinfo@]server:port
+#
+# 重复使用 proxy 多次指定多个二级代理，backup 策略将按照二级代理出现的顺序来使用
+#
+# 目前支持的二级代理及配置举例：
+#
+# SOCKS5:
+#   proxy = socks5://127.0.0.1:1080
+#
+# HTTP:
+#   proxy = http://127.0.0.1:8080
+#   proxy = http://user:password@127.0.0.1:8080
+#
+#   用户认证信息为可选项
+#
+# HTTPS:
+#   proxy = https://example.com:8080
+#   proxy = https://user:password@example.com:8080
+#
+#   用户认证信息为可选项
+#
+# Shadowsocks:
+#   proxy = ss://encrypt_method:password@1.2.3.4:8388
+#
+#   authinfo 中指定加密方法和密码，所有支持的加密方法如下：
+#     aes-128-cfb, aes-192-cfb, aes-256-cfb,
+#     bf-cfb, cast5-cfb, des-cfb, rc4-md5,
+#     chacha20, salsa20, rc4, table
+#
+# Coral:
+#   proxy = Coral://method:passwd@1.2.3.4:4321
+#
+#   authinfo 与 shadowsocks 相同
+
+
+#############################
+# 执行 ssh 命令创建 SOCKS5 代理
+#############################
+
+# 下面的选项可以让 Coral 执行 ssh 命令创建本地 SOCKS5 代理，并在 ssh 断开后重连
+# Coral 会自动使用通过 ssh 命令创建的代理，无需再通过 proxy 选项指定
+# 可重复指定多个
+#
+# 注意这一功能需要系统上已有 ssh 命令，且必须使用 ssh public key authentication
+#
+# 若指定该选项，Coral 将执行以下命令：
+#     ssh -n -N -D <local_socks_port> -p <server_ssh_port> <user@server>
+# server_ssh_port 端口不指定则默认为 22
+# 如果要指定其他 ssh 选项，请修改 ~/.ssh/config
+#sshServer = user@server:local_socks_port[:server_ssh_port]
+
+#############################
+# 认证
+#############################
+
+# 指定允许的 IP 或者网段。网段仅支持 IPv4，可以指定 IPv6 地址，用逗号分隔多个项
+# 使用此选项时别忘了添加 127.0.0.1，否则本机访问也需要认证
+#allowedClient = 127.0.0.1, 192.168.1.0/24, 10.0.0.0/8
+
+# 要求客户端通过用户名密码认证
+# Coral 总是先验证 IP 是否在 allowedClient 中，若不在其中再通过用户名密码认证
+#userPasswd = username:password
+
+# 如需指定多个用户名密码，可在下面选项指定的文件中列出，文件中每行内容如下
+#   username:password[:port]
+# port 为可选项，若指定，则该用户只能从指定端口连接 Coral
+# 注意：如有重复用户，Coral 会报错退出
+#userPasswdFile = /path/to/file
+
+# 认证失效时间
+# 语法：2h3m4s 表示 2 小时 3 分钟 4 秒
+#authTimeout = 2h
+
+#############################
+# 高级选项
+#############################
+
+# 将指定的 HTTP error code 认为是被干扰，使用二级代理重试，默认为空
+#httpErrorCode =
+
+# 最多允许使用多少个 CPU 核
+#core = 2
+
+# 修改 direct/proxy 文件路径，如不指定，默认在配置文件所在目录下
+#directFile = <dir to rc file>/direct
+#proxyFile = <dir to rc file>/proxy
