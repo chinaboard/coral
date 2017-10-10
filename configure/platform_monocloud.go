@@ -101,7 +101,11 @@ func getMonoCloudServers() (*Servers, error) {
 		err = terr
 	}
 
-	return &servers, err
+	if len(servers.SS)+len(servers.Tls) == 0 {
+		return &servers, err
+	}
+
+	return &servers, nil
 }
 
 //step 1 get access_token
