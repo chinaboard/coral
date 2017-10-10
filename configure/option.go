@@ -44,7 +44,7 @@ func InitOption() {
 
 	AllConfig.getLocalConfig()
 
-	val := strings.TrimSpace(AllConfig.getValue("ConfigType", "local"))
+	val := strings.TrimSpace(AllConfig.getValue("ConfigType", "Local"))
 
 	parser := reflect.ValueOf(optionParser{})
 	zeroMethod := reflect.Value{}
@@ -52,7 +52,7 @@ func InitOption() {
 	methodName := "Parse" + val
 	method := parser.MethodByName(methodName)
 	if method == zeroMethod {
-		log.Printf("no such ConfigType \"%s\"\n", val)
+		log.Fatalf("no such ConfigType \"%s\"\n", val)
 	}
 	log.Printf("configType : %s", val)
 
@@ -69,7 +69,10 @@ func (op optionParser) ParseRemoteProxy() {
 	cf, err := getRemoteProxyConfig(url)
 	if err == nil {
 		AllConfig.Content = cf
+	} else {
+		log.Println("get remote proxy err ", err)
 	}
+
 }
 
 func (op optionParser) ParseRemoteFull() {
@@ -80,6 +83,8 @@ func (op optionParser) ParseRemoteFull() {
 		AllConfig.ProxyDomain = cf.ProxyDomain
 		AllConfig.RejectDomain = cf.RejectDomain
 		AllConfig.DirectDomain = cf.DirectDomain
+	} else {
+		log.Println("get remote proxy err ", err)
 	}
 }
 
@@ -89,7 +94,7 @@ func (op optionParser) ParseMonoCloudAll() {
 	UserInfo.Password = AllConfig.getValue("MonoCloudPassword", "")
 	monoServers, err := getMonoCloudServers()
 	if err != nil {
-		log.Println("Error get MonoCloud config:", err)
+		log.Fatalln("Error get MonoCloud config:", err)
 	}
 
 	for k, v := range AllConfig.Content {
@@ -115,7 +120,7 @@ func (op optionParser) ParseMonoCloudSS() {
 	UserInfo.Password = AllConfig.getValue("MonoCloudPassword", "")
 	monoServers, err := getMonoCloudServers()
 	if err != nil {
-		log.Println("Error get MonoCloud config:", err)
+		log.Fatalln("Error get MonoCloud config:", err)
 	}
 
 	for k, v := range AllConfig.Content {
@@ -138,7 +143,7 @@ func (op optionParser) ParseMonoCloudTls() {
 	UserInfo.Password = AllConfig.getValue("MonoCloudPassword", "")
 	monoServers, err := getMonoCloudServers()
 	if err != nil {
-		log.Println("Error get MonoCloud config:", err)
+		log.Fatalln("Error get MonoCloud config:", err)
 	}
 
 	for k, v := range AllConfig.Content {

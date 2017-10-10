@@ -90,8 +90,16 @@ func getMonoCloudServers() (*Servers, error) {
 	}
 
 	var servers Servers
-	servers.SS, err = getSsInfo(serviceId)
-	servers.Tls, err = getTlsInfo(serviceId)
+	var serr, terr error
+	servers.SS, serr = getSsInfo(serviceId)
+	servers.Tls, terr = getTlsInfo(serviceId)
+
+	if serr != nil {
+		err = serr
+	}
+	if terr != nil {
+		err = terr
+	}
 
 	return &servers, err
 }
