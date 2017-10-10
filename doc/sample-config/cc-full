@@ -166,6 +166,12 @@ listen = http://127.0.0.1:5438
 # 语法：2h3m4s 表示 2 小时 3 分钟 4 秒
 #authTimeout = 2h
 
+# tls端口验证
+#tunnelAllowed = false
+
+# tls允许建立连接的端口
+#tunnelAllowedPort = 80,8080,443
+
 #############################
 # 高级选项
 #############################
@@ -177,5 +183,5 @@ listen = http://127.0.0.1:5438
 #core = 2
 
 # 修改 direct/proxy 文件路径，如不指定，默认在配置文件所在目录下
-#directFile = <dir to rc file>/direct
-#proxyFile = <dir to rc file>/proxy
+#directFile = <dir to cc file>/direct
+#proxyFile = <dir to cc file>/proxy

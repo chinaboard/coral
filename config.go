@@ -469,7 +469,7 @@ func initConfig() {
 
 	option.JudgeByIP = true
 	option.DeniedLocal = true
-	option.TunnelAllowed = true
+	option.TunnelAllowed = false
 	option.AuthTimeout = 2 * time.Hour
 
 	configure.InitOption()
