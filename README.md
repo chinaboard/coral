@@ -1,15 +1,20 @@
-# Coral Proxy
+# Coral
+Coral is a lightweight proxy to convert SS or SSR into http protocol.
 
-## Coral 的由来
-- Coral是COW和MEOW的改造版本，主要是基于MEOW
-- 与MEOW策略一样，采取直连国内网站，其它网站使用代理连接
+## How to use
+todo
 
-## Coral 有什么不一样
-- 可以自己定制配置文件，从远端拉取
+## How it works
+```go
+if addr in china_ip{
+    direct connection
+}else{
+    use ss/ssr proxy
+}
+```
 
 ## Acknowledgements
 
 - [@renzhn](https://github.com/renzhn) - MEOW author
 - [@cyfdecyf](https://github.com/cyfdecyf) - COW author
-- https://www.pandafan.org/pac/index.html - Domain White List
 - https://github.com/Leask/Flora_Pac - CN IP Data

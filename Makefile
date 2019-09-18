@@ -1,5 +1,7 @@
-all: binary ## Build all binaries
+all: data binary
 
-binary: 
-	# go run chinaip_gen.go
-	go build -ldflags="-s -w" -o bin/coral
+binary:
+	go build -o bin/coral
+
+data:
+	go run utils/data/chinaip_gen.go

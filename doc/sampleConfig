@@ -1,0 +1,32 @@
+# global config
+[common]
+# default value "127.0.0.1"
+host = 127.0.0.1
+# default value "5438"
+port = 5439
+# default value 10 seconds
+directTimeout = 10
+
+# server name
+[testSSR]
+# server type
+type = ssr
+host = www.baidu.com
+port = 995
+method = rc4-md5
+password = ababdef
+protocol = auth_aes128_md5
+obfs = tls1.2_ticket_auth
+protocolParam = 123:aabcdesaf
+obfsParam = parame
+
+# efault value 10 seconds
+readTimeout = 10
+
+[testSS]
+type = ss
+host = ss.baidu.com
+port = 1122
+method = rc4-md5
+password = aabbcc
+readTimeout = 10

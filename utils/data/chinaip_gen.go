@@ -4,7 +4,7 @@
 package main
 
 import (
-	"github.com/chinaboard/coral/bufio"
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -67,13 +67,13 @@ func main() {
 		count_list = append(count_list, count)
 	}
 
-	file, err := os.OpenFile("chinaip_data.go", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	file, err := os.OpenFile("./utils/data/chinaip_data.go", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
 	if err != nil {
 		log.Fatalf("Failed to generate chinaip_data.go: %v", err)
 	}
 	defer file.Close()
 
-	fmt.Fprintln(file, "package main")
+	fmt.Fprintln(file, "package data")
 	fmt.Fprint(file, "var CNIPDataStart = []uint32 {\n	")
 	fmt.Fprint(file, strings.Join(start_list, ",\n	"))
 	fmt.Fprintln(file, ",\n	}")

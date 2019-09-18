@@ -1,40 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"runtime"
-	"sync"
+	"coral/config"
+	"coral/proxy"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-
-	fmt.Println("Coral Proxy ", version)
-	fmt.Println()
-
-	initConfig()
-
-	initSelfListenAddr()
-	initLog()
-	initAuth()
-	initStat()
-
-	initUpstreamPool()
-
-	if option.JudgeByIP {
-		initCNIPData()
+	conf, err := config.ParseFileConfig("")
+	if err != nil {
+		log.Fatalln(err)
+		return
 	}
 
-	if option.Core > 0 {
-		runtime.GOMAXPROCS(option.Core)
-	}
-
-	go runSSH()
-
-	var wg sync.WaitGroup
-	wg.Add(len(listenProxy))
-	for _, proxy := range listenProxy {
-		go proxy.Serve(&wg)
-	}
-	wg.Wait()
-
+	listener := proxy.NewHttpListener(conf)
+	log.Infof("listen on %s", conf.Common.Address())
+	log.Fatalln(listener.ListenAndServe())
 }
