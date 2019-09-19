@@ -13,7 +13,6 @@ func main() {
 		log.Fatalln(err)
 		return
 	}
-
 	listener := proxy.NewHttpListener(conf)
 	log.Infof("listen on %s", conf.Common.Address())
 	log.Fatalln(listener.ListenAndServe())

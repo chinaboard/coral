@@ -3,14 +3,15 @@ package proxy
 import (
 	"coral/config"
 	"net"
+	"time"
 
 	"github.com/juju/errors"
 )
 
-type DialFunc func(addr string) (net.Conn, error)
+type DialFunc func(addr string) (net.Conn, time.Duration, error)
 
 type Proxy interface {
-	Dial(string) (net.Conn, error)
+	Dial(string) (net.Conn, time.Duration, error)
 	Name() string
 }
 

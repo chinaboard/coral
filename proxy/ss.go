@@ -29,8 +29,9 @@ func NewShadowsocksProxy(server config.CoralServer) (Proxy, error) {
 	}, nil
 }
 
-func (this *ShadowsocksProxy) Dial(addr string) (net.Conn, error) {
-	return ss.Dial(addr, this.Address, this.Cipher.Copy())
+func (this *ShadowsocksProxy) Dial(addr string) (net.Conn, time.Duration, error) {
+	conn, err := ss.Dial(addr, this.Address, this.Cipher.Copy())
+	return conn, this.Timeout, err
 }
 
 func (this *ShadowsocksProxy) Name() string {

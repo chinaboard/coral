@@ -4,6 +4,7 @@ import (
 	"context"
 	"coral/cache"
 	"coral/config"
+	"coral/leakybuf"
 	"coral/utils"
 	"fmt"
 	"io"
@@ -13,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,9 +39,8 @@ func NewHttpListener(conf *config.CoralConfig) *http.Server {
 
 	listener := &HttpListener{
 		servers: servers,
-		//todo directTimeout config
-		direct: NewDirectProxy(time.Second * 30),
-		cache:  cache.NewCache(time.Minute * 30),
+		direct:  NewDirectProxy(conf.Common.DirectTimeout),
+		cache:   cache.NewCache(time.Minute * 30),
 	}
 
 	return &http.Server{
@@ -92,22 +91,22 @@ func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	rConn, err := dial(r.Host)
+	rConn, timeout, err := dial(r.Host)
 	if err != nil {
 		log.Errorln("dial:", err)
 		return
 	}
-
 	lConn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
 
-	go ss.PipeThenClose(lConn, rConn, nil)
-	ss.PipeThenClose(rConn, lConn, nil)
+	go this.Pipe(lConn, rConn, timeout)
+	this.Pipe(rConn, lConn, timeout)
 }
 
 func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, dial DialFunc) {
 	tr := http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dial(addr)
+			conn, _, err := dial(addr)
+			return conn, err
 		},
 	}
 
@@ -118,7 +117,6 @@ func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, dia
 	}
 	defer resp.Body.Close()
 
-	// copy headers
 	for k, values := range resp.Header {
 		for _, v := range values {
 			w.Header().Add(k, v)
@@ -126,7 +124,6 @@ func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, dia
 	}
 	w.WriteHeader(resp.StatusCode)
 
-	// copy body
 	io.Copy(w, resp.Body)
 }
 
@@ -138,4 +135,31 @@ func (this *HttpListener) chooseDial(direct bool) (DialFunc, string) {
 	index := rand.Intn(len(this.servers))
 	svr = this.servers[index]
 	return svr.Dial, svr.Name()
+}
+
+func (this *HttpListener) Pipe(src, dst net.Conn, timeout time.Duration) error {
+	buf := leakybuf.GlobalLeakyBuf.Get()
+	for {
+		if timeout != 0 {
+			src.SetReadDeadline(time.Now().Add(timeout))
+		}
+		n, err := src.Read(buf)
+		// read may return EOF with n > 0
+		// should always process n > 0 bytes before handling error
+		if n > 0 {
+			// Note: avoid overwrite err returned by Read.
+			if _, err := dst.Write(buf[0:n]); err != nil {
+				break
+			}
+		}
+		if err != nil {
+			// Always "use of closed network connection", but no easy way to
+			// identify this specific error. So just leave the error along for now.
+			// More info here: https://code.google.com/p/go/issues/detail?id=4373
+			break
+		}
+	}
+	leakybuf.GlobalLeakyBuf.Put(buf)
+	dst.Close()
+	return nil
 }
