@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	apnicFile = "http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest"
+	apnicFile = "https://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest"
 )
 
 // ip to long int

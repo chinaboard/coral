@@ -17,4 +17,4 @@ if addr in china_ip{
 
 - [@renzhn](https://github.com/renzhn) - MEOW author
 - [@cyfdecyf](https://github.com/cyfdecyf) - COW author
-- https://github.com/Leask/Flora_Pac - CN IP Data
+- [apnic.net](https://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest) - CN IP Data
