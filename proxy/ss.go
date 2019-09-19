@@ -1,9 +1,10 @@
 package proxy
 
 import (
-	"coral/config"
 	"net"
 	"time"
+
+	"github.com/chinaboard/coral/config"
 
 	ss "github.com/shadowsocks/shadowsocks-go/shadowsocks"
 )

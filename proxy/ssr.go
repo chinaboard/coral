@@ -1,11 +1,12 @@
 package proxy
 
 import (
-	"coral/config"
 	"fmt"
 	"net"
 	"net/url"
 	"time"
+
+	"github.com/chinaboard/coral/config"
 
 	shadowsocksr "github.com/chinaboard/shadowsocksR"
 	"github.com/juju/errors"

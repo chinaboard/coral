@@ -1,9 +1,10 @@
 package proxy
 
 import (
-	"coral/config"
 	"net"
 	"time"
+
+	"github.com/chinaboard/coral/config"
 
 	"github.com/juju/errors"
 )

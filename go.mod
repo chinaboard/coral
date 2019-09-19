@@ -1,4 +1,4 @@
-module coral
+module github.com/chinaboard/coral
 
 go 1.13
 

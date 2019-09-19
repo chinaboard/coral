@@ -2,10 +2,6 @@ package proxy
 
 import (
 	"context"
-	"coral/cache"
-	"coral/config"
-	"coral/leakybuf"
-	"coral/utils"
 	"fmt"
 	"io"
 	"math/rand"
@@ -13,6 +9,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/chinaboard/coral/cache"
+	"github.com/chinaboard/coral/config"
+	"github.com/chinaboard/coral/leakybuf"
+	"github.com/chinaboard/coral/utils"
 
 	log "github.com/sirupsen/logrus"
 )

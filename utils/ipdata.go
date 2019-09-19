@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"coral/utils/data"
 	"encoding/binary"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/chinaboard/coral/utils/data"
 
 	"github.com/juju/errors"
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"coral/config"
-	"coral/proxy"
+	"github.com/chinaboard/coral/config"
+	"github.com/chinaboard/coral/proxy"
 
 	log "github.com/sirupsen/logrus"
 )

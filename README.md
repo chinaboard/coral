@@ -6,9 +6,9 @@ todo
 
 ## How it works
 ```go
-if addr in china_ip{
+if addr in china_ip {
     direct connection
-}else{
+} else {
     use ss/ssr proxy
 }
 ```
