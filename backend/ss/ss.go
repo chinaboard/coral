@@ -1,8 +1,10 @@
-package proxy
+package ss
 
 import (
 	"net"
 	"time"
+
+	"github.com/chinaboard/coral/backend/proxy"
 
 	"github.com/chinaboard/coral/config"
 
@@ -16,7 +18,7 @@ type ShadowsocksProxy struct {
 	Address string
 }
 
-func NewShadowsocksProxy(server config.CoralServer) (Proxy, error) {
+func New(server config.CoralServer) (proxy.Proxy, error) {
 	cipher, err := ss.NewCipher(server.Method, server.Password)
 	if err != nil {
 		return nil, err
@@ -37,4 +39,8 @@ func (this *ShadowsocksProxy) Dial(addr string) (net.Conn, time.Duration, error)
 
 func (this *ShadowsocksProxy) Name() string {
 	return this.name
+}
+
+func (this *ShadowsocksProxy) Domestic() bool {
+	return false
 }

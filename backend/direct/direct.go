@@ -1,15 +1,17 @@
-package proxy
+package direct
 
 import (
 	"net"
 	"time"
+
+	"github.com/chinaboard/coral/backend/proxy"
 )
 
 type DirectProxy struct {
 	Timeout time.Duration
 }
 
-func NewDirectProxy(timeout time.Duration) *DirectProxy {
+func New(timeout time.Duration) proxy.Proxy {
 	return &DirectProxy{Timeout: timeout}
 }
 
@@ -20,4 +22,8 @@ func (this *DirectProxy) Dial(addr string) (net.Conn, time.Duration, error) {
 
 func (this *DirectProxy) Name() string {
 	return "DIRECT"
+}
+
+func (this *DirectProxy) Domestic() bool {
+	return true
 }

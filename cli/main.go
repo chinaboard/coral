@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/chinaboard/coral/backend"
 	"github.com/chinaboard/coral/config"
-	"github.com/chinaboard/coral/proxy"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -16,7 +16,7 @@ func main() {
 		return
 	}
 
-	listener, err := proxy.NewHttpListener(conf)
+	listener, err := backend.NewHttpListener(conf)
 	if err != nil {
 		log.Fatalln(err)
 		os.Exit(128)

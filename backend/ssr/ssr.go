@@ -1,4 +1,4 @@
-package proxy
+package ssr
 
 import (
 	"fmt"
@@ -6,12 +6,13 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/chinaboard/coral/backend/proxy"
 	"github.com/chinaboard/coral/config"
+	"github.com/chinaboard/shadowsocksR/tools/socks"
 
-	shadowsocksr "github.com/chinaboard/shadowsocksR"
 	"github.com/juju/errors"
 
-	"github.com/chinaboard/shadowsocksR/tools/socks"
+	shadowsocksr "github.com/chinaboard/shadowsocksR"
 )
 
 type ShadowsocksRProxy struct {
@@ -22,7 +23,7 @@ type ShadowsocksRProxy struct {
 	ProtocolData interface{}
 }
 
-func NewShadowsocksRProxy(server config.CoralServer) (Proxy, error) {
+func New(server config.CoralServer) (proxy.Proxy, error) {
 	u := &url.URL{
 		Scheme: server.Type,
 		Host:   server.Address(),
@@ -67,4 +68,8 @@ func (this *ShadowsocksRProxy) Dial(addr string) (net.Conn, time.Duration, error
 
 func (this *ShadowsocksRProxy) Name() string {
 	return this.name
+}
+
+func (this *ShadowsocksRProxy) Domestic() bool {
+	return false
 }

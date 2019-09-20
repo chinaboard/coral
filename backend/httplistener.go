@@ -1,14 +1,20 @@
-package proxy
+package backend
 
 import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/chinaboard/coral/backend/direct"
+	"github.com/chinaboard/coral/backend/ss"
+	"github.com/chinaboard/coral/backend/ssr"
+
+	"github.com/chinaboard/coral/backend/proxy"
 
 	"github.com/juju/errors"
 
@@ -21,37 +27,65 @@ import (
 )
 
 type HttpListener struct {
+	sync.Mutex
 	cache   *cache.Cache
-	servers []Proxy
-	direct  Proxy
+	proxies []proxy.Proxy
+	srv     *http.Server
+	spf     SelectProxyFunc
 }
 
-func NewHttpListener(conf *config.CoralConfig) (*http.Server, error) {
+func NewHttpListener(conf *config.CoralConfig) (Listener, error) {
+	if conf == nil {
+		return nil, errors.New("config is nil")
+	}
 	if len(conf.Servers) == 0 {
 		return nil, errors.NotFoundf("server")
 	}
 
-	var servers []Proxy
-	for n, v := range conf.Servers {
-		log.Debugln("parse ..", v.Type, n)
-		proxy, err := GenProxy(v)
+	listener := &HttpListener{
+		proxies: []proxy.Proxy{direct.New(conf.Common.DirectTimeout)},
+		cache:   cache.NewCache(time.Minute * 30),
+	}
+
+	listener.srv = &http.Server{
+		Addr:    conf.Common.Address(),
+		Handler: listener,
+	}
+
+	for _, v := range conf.Servers {
+		proxy, err := genProxy(v)
 		if err != nil {
 			log.Warningln(err)
 			continue
 		}
-		servers = append(servers, proxy)
+		listener.RegisterProxy(proxy)
 	}
+	listener.RegisterLoadBalance(listener.DefaultSelectProxy)
+	listener.srv.ListenAndServe()
 
-	listener := &HttpListener{
-		servers: servers,
-		direct:  NewDirectProxy(conf.Common.DirectTimeout),
-		cache:   cache.NewCache(time.Minute * 30),
+	return listener, nil
+}
+
+func (this *HttpListener) ListenAndServe() error {
+	return this.srv.ListenAndServe()
+}
+
+func (this *HttpListener) RegisterProxy(proxy proxy.Proxy) (bool, error) {
+	if proxy != nil {
+		this.Lock()
+		defer this.Unlock()
+		this.proxies = append(this.proxies, proxy)
+		return true, nil
 	}
+	return false, errors.New("proxy is nil")
+}
 
-	return &http.Server{
-		Addr:    conf.Common.Address(),
-		Handler: listener,
-	}, nil
+func (this *HttpListener) RegisterLoadBalance(spf SelectProxyFunc) (bool, error) {
+	if spf != nil {
+		this.spf = spf
+		return true, nil
+	}
+	return false, errors.New("func errer")
 }
 
 func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -62,22 +96,25 @@ func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	direct, notFound := this.cache.Exist(r.Host)
+	domestic, notFound := this.cache.Exist(r.Host)
 	if notFound != nil {
 		host := strings.Split(r.Host, ":")
 		ips, err := net.LookupIP(host[0])
 		if err != nil {
-			log.Warnf("error looking up Address ip %s, err %s", r.Host, err)
-			direct = false
+			log.Warningln(err, "force use proxy")
+			domestic = false
 		} else {
 			ip := ips[0].String()
-			direct = utils.ShouldDirect(ip)
+			domestic = utils.ShouldDirect(ip)
 		}
-		this.cache.Set(r.Host, direct)
+		this.cache.Set(r.Host, domestic)
 	}
 
-	proxy := this.SelectProxy(direct)
-
+	proxy, err := this.spf(r.Host, this.proxies, domestic)
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
 	log.Infoln(proxy.Name(), r.RemoteAddr, r.Method, r.Host)
 
 	if r.Method == "CONNECT" {
@@ -88,7 +125,7 @@ func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, proxy Proxy) {
+func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, proxy proxy.Proxy) {
 	hj, _ := w.(http.Hijacker)
 	lConn, _, err := hj.Hijack()
 	if err != nil && err != http.ErrHijacked {
@@ -107,7 +144,7 @@ func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 	this.Pipe(rConn, lConn, timeout)
 }
 
-func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, proxy Proxy) {
+func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, proxy proxy.Proxy) {
 	tr := http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			conn, _, err := proxy.Dial(addr)
@@ -132,13 +169,13 @@ func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, pro
 	io.Copy(w, resp.Body)
 }
 
-func (this *HttpListener) SelectProxy(direct bool) Proxy {
-	svr := this.direct
-	if direct {
-		return svr
+func (this *HttpListener) DefaultSelectProxy(addr string, proxies []proxy.Proxy, domestic bool) (proxy.Proxy, error) {
+	for _, value := range proxies {
+		if domestic == value.Domestic() {
+			return value, nil
+		}
 	}
-	index := rand.Intn(len(this.servers))
-	return this.servers[index]
+	return nil, errors.NotFoundf("domestic proxy: %s", domestic)
 }
 
 func (this *HttpListener) Pipe(src, dst net.Conn, timeout time.Duration) error {
@@ -166,4 +203,16 @@ func (this *HttpListener) Pipe(src, dst net.Conn, timeout time.Duration) error {
 	leakybuf.GlobalLeakyBuf.Put(buf)
 	dst.Close()
 	return nil
+}
+
+func genProxy(server config.CoralServer) (proxy.Proxy, error) {
+	log.Infoln("init", server.Type, server.Name, server.Address(), "...")
+	switch server.Type {
+	case "ss":
+		return ss.New(server)
+	case "ssr":
+		return ssr.New(server)
+	default:
+		return nil, errors.NotSupportedf(server.Type)
+	}
 }
