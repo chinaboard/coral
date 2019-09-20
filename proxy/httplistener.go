@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/juju/errors"
+
 	"github.com/chinaboard/coral/cache"
 	"github.com/chinaboard/coral/config"
 	"github.com/chinaboard/coral/leakybuf"
@@ -24,10 +26,12 @@ type HttpListener struct {
 	direct  Proxy
 }
 
-func NewHttpListener(conf *config.CoralConfig) *http.Server {
+func NewHttpListener(conf *config.CoralConfig) (*http.Server, error) {
+	if len(conf.Servers) == 0 {
+		return nil, errors.NotFoundf("server")
+	}
 
 	var servers []Proxy
-
 	for n, v := range conf.Servers {
 		log.Debugln("parse ..", v.Type, n)
 		proxy, err := GenProxy(v)
@@ -47,7 +51,7 @@ func NewHttpListener(conf *config.CoralConfig) *http.Server {
 	return &http.Server{
 		Addr:    conf.Common.Address(),
 		Handler: listener,
-	}
+	}, nil
 }
 
 func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -72,19 +76,19 @@ func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	dial, name := this.chooseDial(direct)
+	proxy := this.SelectProxy(direct)
 
-	log.Infoln(name, r.RemoteAddr, r.Method, r.Host)
+	log.Infoln(proxy.Name(), r.RemoteAddr, r.Method, r.Host)
 
 	if r.Method == "CONNECT" {
-		this.HandleConnect(w, r, dial)
+		this.HandleConnect(w, r, proxy)
 	} else {
-		this.HandleHttp(w, r, dial)
+		this.HandleHttp(w, r, proxy)
 	}
 
 }
 
-func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, dial DialFunc) {
+func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, proxy Proxy) {
 	hj, _ := w.(http.Hijacker)
 	lConn, _, err := hj.Hijack()
 	if err != nil && err != http.ErrHijacked {
@@ -92,9 +96,9 @@ func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	rConn, timeout, err := dial(r.Host)
+	rConn, timeout, err := proxy.Dial(r.Host)
 	if err != nil {
-		log.Errorln("dial:", err)
+		log.Errorln(proxy.Name(), "Dial:", err)
 		return
 	}
 	lConn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
@@ -103,17 +107,17 @@ func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 	this.Pipe(rConn, lConn, timeout)
 }
 
-func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, dial DialFunc) {
+func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, proxy Proxy) {
 	tr := http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			conn, _, err := dial(addr)
+			conn, _, err := proxy.Dial(addr)
 			return conn, err
 		},
 	}
 
 	resp, err := tr.RoundTrip(r)
 	if err != nil {
-		log.Error("request error: ", err)
+		log.Errorln("request error: ", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -128,14 +132,13 @@ func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, dia
 	io.Copy(w, resp.Body)
 }
 
-func (this *HttpListener) chooseDial(direct bool) (DialFunc, string) {
+func (this *HttpListener) SelectProxy(direct bool) Proxy {
 	svr := this.direct
 	if direct {
-		return svr.Dial, svr.Name()
+		return svr
 	}
 	index := rand.Intn(len(this.servers))
-	svr = this.servers[index]
-	return svr.Dial, svr.Name()
+	return this.servers[index]
 }
 
 func (this *HttpListener) Pipe(src, dst net.Conn, timeout time.Duration) error {

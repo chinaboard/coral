@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/chinaboard/coral/config"
 	"github.com/chinaboard/coral/proxy"
 
@@ -13,7 +15,13 @@ func main() {
 		log.Fatalln(err)
 		return
 	}
-	listener := proxy.NewHttpListener(conf)
+
+	listener, err := proxy.NewHttpListener(conf)
+	if err != nil {
+		log.Fatalln(err)
+		os.Exit(128)
+	}
+
 	log.Infof("listen on %s", conf.Common.Address())
 	log.Fatalln(listener.ListenAndServe())
 }
