@@ -138,7 +138,7 @@ func UnmarshalServerFormSection(name string, section ini.Section) (CoralServer, 
 	)
 
 	//default readTimeout
-	cfg.ReadTimeout = time.Second * 10
+	cfg.ReadTimeout = time.Second * 600
 	if tmpStr, ok = section["readTimeout"]; ok {
 		if v, err := strconv.Atoi(tmpStr); err != nil {
 			return cfg, errors.New("Parse conf error: invalid readTimeout")
@@ -191,7 +191,7 @@ func GetDefaultConfig() CoralConfig {
 		Common: CoralConfigCommon{
 			Host:          "127.0.0.1",
 			Port:          5438,
-			DirectTimeout: time.Second * 10,
+			DirectTimeout: time.Second * 600,
 		},
 		Servers: map[string]CoralServer{},
 	}
