@@ -72,8 +72,8 @@ func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			ip := ips[0].String()
 			direct = utils.ShouldDirect(ip)
-			this.cache.Set(r.Host, direct)
 		}
+		this.cache.Set(r.Host, direct)
 	}
 
 	proxy := this.SelectProxy(direct)
