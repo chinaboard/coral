@@ -1,8 +1,12 @@
 package backend
 
-import "github.com/chinaboard/coral/backend/proxy"
+import (
+	"net/http"
 
-type SelectProxyFunc func(addr string, proxies []proxy.Proxy, domestic bool) (proxy.Proxy, error)
+	"github.com/chinaboard/coral/backend/proxy"
+)
+
+type SelectProxyFunc func(req *http.Request, proxies []proxy.Proxy, domestic bool) (proxy.Proxy, error)
 
 type Listener interface {
 	ListenAndServe() error

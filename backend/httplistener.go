@@ -110,7 +110,7 @@ func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		this.cache.Set(r.Host, domestic)
 	}
 
-	proxy, err := this.spf(r.Host, this.proxies, domestic)
+	proxy, err := this.spf(r, this.proxies, domestic)
 	if err != nil {
 		log.Errorln(err)
 		return
@@ -133,8 +133,15 @@ func (this *HttpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	rConn, timeout, err := proxy.Dial(r.Host)
-	if err != nil {
+	var (
+		rConn   net.Conn
+		timeout time.Duration
+		errs    error
+	)
+
+	rConn, timeout, errs = proxy.Dial(r.Host)
+
+	if errs != nil {
 		log.Errorln(proxy.Name(), "Dial:", err)
 		return
 	}
@@ -169,7 +176,7 @@ func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, pro
 	io.Copy(w, resp.Body)
 }
 
-func (this *HttpListener) DefaultSelectProxy(addr string, proxies []proxy.Proxy, domestic bool) (proxy.Proxy, error) {
+func (this *HttpListener) DefaultSelectProxy(r *http.Request, proxies []proxy.Proxy, domestic bool) (proxy.Proxy, error) {
 	for _, value := range proxies {
 		if domestic == value.Domestic() {
 			return value, nil
