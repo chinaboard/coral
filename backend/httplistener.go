@@ -159,6 +159,7 @@ func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, pro
 		},
 	}
 
+	r.Close = true
 	resp, err := tr.RoundTrip(r)
 	if err != nil {
 		log.Errorln("request error: ", err)
