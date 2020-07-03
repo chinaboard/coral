@@ -6,8 +6,8 @@ import (
 	"github.com/chinaboard/coral/backend"
 	"github.com/chinaboard/coral/config"
 
-	log "github.com/sirupsen/logrus"
 	_ "github.com/chinaboard/coral/utils/version"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
