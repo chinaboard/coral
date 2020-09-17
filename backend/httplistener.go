@@ -28,10 +28,11 @@ import (
 
 type HttpListener struct {
 	sync.Mutex
-	cache   *cache.Cache
-	proxies []proxy.Proxy
-	srv     *http.Server
-	spf     SelectProxyFunc
+	cache     *cache.Cache
+	proxies   []proxy.Proxy
+	srv       *http.Server
+	spf       SelectProxyFunc
+	whitelist map[string]bool
 }
 
 func NewHttpListener(conf *config.CoralConfig) (Listener, error) {
@@ -43,8 +44,9 @@ func NewHttpListener(conf *config.CoralConfig) (Listener, error) {
 	}
 
 	listener := &HttpListener{
-		proxies: []proxy.Proxy{direct.New(conf.Common.DirectTimeout)},
-		cache:   cache.NewCache(time.Minute * 30),
+		proxies:   []proxy.Proxy{direct.New(conf.Common.DirectTimeout)},
+		cache:     cache.NewCache(time.Minute * 30),
+		whitelist: conf.Common.Whitelist,
 	}
 
 	listener.srv = &http.Server{
@@ -61,7 +63,6 @@ func NewHttpListener(conf *config.CoralConfig) (Listener, error) {
 		listener.RegisterProxy(proxy)
 	}
 	listener.RegisterLoadBalance(listener.DefaultSelectProxy)
-	listener.srv.ListenAndServe()
 
 	return listener, nil
 }
@@ -95,6 +96,10 @@ func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			log.Debugf("panic: %v\n", err)
 		}
 	}()
+
+	if !this.auth(w, r) {
+		return
+	}
 
 	domestic, notFound := this.cache.Exist(r.Host)
 	if notFound != nil {
@@ -211,6 +216,23 @@ func (this *HttpListener) Pipe(src, dst net.Conn, timeout time.Duration) error {
 	leakybuf.GlobalLeakyBuf.Put(buf)
 	dst.Close()
 	return nil
+}
+
+func (this *HttpListener) auth(w http.ResponseWriter, r *http.Request) bool {
+	ip := strings.Split(r.RemoteAddr, ":")[0]
+	if len(this.whitelist) > 0 {
+		if _, ok := this.whitelist[ip]; ok {
+			return true
+		}
+		log.Warnln(r.RemoteAddr, r.Method, r.Host)
+		this.badAuth(w)
+		return false
+	}
+	return true
+}
+
+func (this *HttpListener) badAuth(w http.ResponseWriter) {
+	http.Error(w, "Unauthorized.", http.StatusUnauthorized)
 }
 
 func genProxy(server config.CoralServer) (proxy.Proxy, error) {

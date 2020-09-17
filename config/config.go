@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -40,9 +41,10 @@ func (c CoralServer) Address() string {
 }
 
 type CoralConfigCommon struct {
-	Host          string        `json:"address"`
-	Port          int           `json:"port"`
-	DirectTimeout time.Duration `json:"directTimeout"`
+	Host          string          `json:"address"`
+	Port          int             `json:"port"`
+	DirectTimeout time.Duration   `json:"directTimeout"`
+	Whitelist     map[string]bool `json:"whitelist"`
 }
 
 func (c CoralConfigCommon) Address() string {
@@ -114,6 +116,29 @@ func ParseIniConfig(str string) (*CoralConfig, error) {
 			return nil, err
 		}
 		cfg.Common.Port = v
+	}
+
+	if tmpStr, ok = conf.Get("common", "directTimeout"); ok {
+		v, err = strconv.Atoi(tmpStr)
+		if err != nil {
+			err = errors.Errorf("Parse conf error: invalid directTimeout")
+			return nil, err
+		}
+		if v < 10 {
+			v = 10
+		}
+		cfg.Common.DirectTimeout = time.Duration(v) * time.Second
+	}
+
+	if tmpStr, ok = conf.Get("common", "users"); ok {
+		list := []string{}
+		err := json.Unmarshal([]byte(tmpStr), &list)
+		if err != nil {
+			fmt.Println(err)
+		}
+		for _, v := range list {
+			cfg.Common.Whitelist[v] = true
+		}
 	}
 
 	for name, section := range conf {
@@ -192,6 +217,7 @@ func GetDefaultConfig() CoralConfig {
 			Host:          "127.0.0.1",
 			Port:          5438,
 			DirectTimeout: time.Second * 600,
+			Whitelist:     map[string]bool{"127.0.0.1": true},
 		},
 		Servers: map[string]CoralServer{},
 	}
