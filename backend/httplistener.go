@@ -220,7 +220,7 @@ func (this *HttpListener) Pipe(src, dst net.Conn, timeout time.Duration) error {
 
 func (this *HttpListener) auth(w http.ResponseWriter, r *http.Request) bool {
 	ip := strings.Split(r.RemoteAddr, ":")[0]
-	if len(this.whitelist) > 0 {
+	if len(this.whitelist) > 1 {
 		if _, ok := this.whitelist[ip]; ok {
 			return true
 		}

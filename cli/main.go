@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 
 	"github.com/chinaboard/coral/backend"
@@ -11,7 +12,11 @@ import (
 )
 
 func main() {
-	conf, err := config.ParseFileConfig("")
+	configFile := ""
+	flag.StringVar(&configFile, "config", "", "Configuration filename")
+	flag.Parse()
+
+	conf, err := config.ParseFileConfig(configFile)
 	if err != nil {
 		log.Fatalln(err)
 		return

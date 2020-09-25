@@ -3,6 +3,7 @@ package version
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chinaboard/coral/utils/data"
 )
@@ -16,8 +17,8 @@ func init() {
 	if nil == args || len(args) < 2 {
 		return
 	}
-	if "-v" == args[1] {
+	if strings.Contains(args[1], "-v") {
 		fmt.Println("Coral: ", BuildVersion, "CNIPDataNum", len(data.CNIPDataNum), "CNIPDataStart", len(data.CNIPDataStart))
+		os.Exit(0)
 	}
-	os.Exit(0)
 }
