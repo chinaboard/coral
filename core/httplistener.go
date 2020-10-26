@@ -1,4 +1,4 @@
-package backend
+package core
 
 import (
 	"context"
@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chinaboard/coral/backend/direct"
-	"github.com/chinaboard/coral/backend/ss"
-	"github.com/chinaboard/coral/backend/ssr"
+	"github.com/chinaboard/coral/core/direct"
+	"github.com/chinaboard/coral/core/ss"
+	"github.com/chinaboard/coral/core/ssr"
 
-	"github.com/chinaboard/coral/backend/proxy"
+	"github.com/chinaboard/coral/core/proxy"
 
 	"github.com/juju/errors"
 
@@ -28,11 +28,11 @@ import (
 
 type HttpListener struct {
 	sync.Mutex
-	cache     *cache.Cache
-	proxies   []proxy.Proxy
-	srv       *http.Server
-	spf       SelectProxyFunc
-	whitelist map[string]bool
+	cache           *cache.Cache
+	proxies         []proxy.Proxy
+	srv             *http.Server
+	selectProxyFunc SelectProxyFunc
+	whitelist       map[string]bool
 }
 
 func NewHttpListener(conf *config.CoralConfig) (Listener, error) {
@@ -55,14 +55,19 @@ func NewHttpListener(conf *config.CoralConfig) (Listener, error) {
 	}
 
 	for _, v := range conf.Servers {
-		proxy, err := genProxy(v)
+		p, err := genProxy(v)
 		if err != nil {
 			log.Warningln(err)
 			continue
 		}
-		listener.RegisterProxy(proxy)
+		if ok, err := listener.RegisterProxy(p); !ok {
+			return nil, err
+		}
 	}
-	listener.RegisterLoadBalance(listener.DefaultSelectProxy)
+
+	if ok, err := listener.RegisterLoadBalance(listener.DefaultSelectProxy); !ok {
+		return nil, err
+	}
 
 	return listener, nil
 }
@@ -81,9 +86,9 @@ func (this *HttpListener) RegisterProxy(proxy proxy.Proxy) (bool, error) {
 	return false, errors.New("proxy is nil")
 }
 
-func (this *HttpListener) RegisterLoadBalance(spf SelectProxyFunc) (bool, error) {
-	if spf != nil {
-		this.spf = spf
+func (this *HttpListener) RegisterLoadBalance(selectProxyFunc SelectProxyFunc) (bool, error) {
+	if selectProxyFunc != nil {
+		this.selectProxyFunc = selectProxyFunc
 		return true, nil
 	}
 	return false, errors.New("func errer")
@@ -101,31 +106,31 @@ func (this *HttpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	domestic, notFound := this.cache.Exist(r.Host)
+	d, notFound := this.cache.Exist(r.Host)
 	if notFound != nil {
 		host := strings.Split(r.Host, ":")
 		ips, err := net.LookupIP(host[0])
 		if err != nil {
-			log.Warningln(err, "force use proxy")
-			domestic = false
+			log.Warningln(err, "force use Proxy")
+			d = false
 		} else {
 			ip := ips[0].String()
-			domestic = utils.ShouldDirect(ip)
+			d = utils.ShouldDirect(ip)
 		}
-		this.cache.Set(r.Host, domestic)
+		this.cache.Set(r.Host, d)
 	}
 
-	proxy, err := this.spf(r, this.proxies, domestic)
+	proxyFunc, err := this.selectProxyFunc(r, this.proxies, d)
 	if err != nil {
 		log.Errorln(err)
 		return
 	}
-	log.Infoln(proxy.Name(), r.RemoteAddr, r.Method, r.Host)
+	log.Infoln(proxyFunc.Name(), r.RemoteAddr, r.Method, r.Host)
 
 	if r.Method == "CONNECT" {
-		this.HandleConnect(w, r, proxy)
+		this.HandleConnect(w, r, proxyFunc)
 	} else {
-		this.HandleHttp(w, r, proxy)
+		this.HandleHttp(w, r, proxyFunc)
 	}
 
 }
@@ -182,13 +187,14 @@ func (this *HttpListener) HandleHttp(w http.ResponseWriter, r *http.Request, pro
 	io.Copy(w, resp.Body)
 }
 
-func (this *HttpListener) DefaultSelectProxy(r *http.Request, proxies []proxy.Proxy, domestic bool) (proxy.Proxy, error) {
+func (this *HttpListener) DefaultSelectProxy(r *http.Request, proxies []proxy.Proxy, direct bool) (proxy.Proxy, error) {
+	// first direct proxy
 	for _, value := range proxies {
-		if domestic == value.Domestic() {
+		if direct == value.Direct() {
 			return value, nil
 		}
 	}
-	return nil, errors.NotFoundf("domestic proxy: %s", domestic)
+	return nil, errors.NotFoundf("direct proxy: %s", direct)
 }
 
 func (this *HttpListener) Pipe(src, dst net.Conn, timeout time.Duration) error {

@@ -1,4 +1,4 @@
-package backend
+package core
 
 type LB interface {
 	//Get(string, []Proxy) Proxy

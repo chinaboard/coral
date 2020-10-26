@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/chinaboard/coral/backend/proxy"
+	"github.com/chinaboard/coral/core/proxy"
 
 	"github.com/chinaboard/coral/config"
 
@@ -41,6 +41,6 @@ func (this *ShadowsocksProxy) Name() string {
 	return this.name
 }
 
-func (this *ShadowsocksProxy) Domestic() bool {
+func (this *ShadowsocksProxy) Direct() bool {
 	return false
 }

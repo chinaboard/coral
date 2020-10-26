@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/chinaboard/coral/backend/proxy"
 	"github.com/chinaboard/coral/config"
+	"github.com/chinaboard/coral/core/proxy"
 	"github.com/chinaboard/shadowsocksR/tools/socks"
 
 	"github.com/juju/errors"
@@ -70,6 +70,6 @@ func (this *ShadowsocksRProxy) Name() string {
 	return this.name
 }
 
-func (this *ShadowsocksRProxy) Domestic() bool {
+func (this *ShadowsocksRProxy) Direct() bool {
 	return false
 }

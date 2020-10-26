@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/chinaboard/coral/backend/proxy"
+	"github.com/chinaboard/coral/core/proxy"
 )
 
 type DirectProxy struct {
@@ -24,6 +24,6 @@ func (this *DirectProxy) Name() string {
 	return "DIRECT"
 }
 
-func (this *DirectProxy) Domestic() bool {
+func (this *DirectProxy) Direct() bool {
 	return true
 }
