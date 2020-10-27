@@ -22,12 +22,12 @@ func main() {
 		return
 	}
 
-	listener, err := core.NewHttpListener(conf)
+	http, err := core.NewHttpListener(conf)
 	if err != nil {
 		log.Fatalln(err)
 		os.Exit(128)
 	}
 
 	log.Infof("listen on %s", conf.Common.Address())
-	log.Fatalln(listener.ListenAndServe())
+	log.Fatalln(http.ListenAndServe())
 }

@@ -1,8 +1,13 @@
 package cache
 
 import (
+	"net"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/chinaboard/coral/utils"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/juju/errors"
 )
@@ -38,6 +43,7 @@ func (c *Cache) init() {
 func (c *Cache) Set(key string, value bool) {
 	c.data.Store(key, kv{value: value, ttl: time.Now()})
 }
+
 func (c *Cache) Exist(key string) (bool, error) {
 	v, ok := c.data.Load(key)
 	if ok {
@@ -45,4 +51,21 @@ func (c *Cache) Exist(key string) (bool, error) {
 		return v.(kv).value, nil
 	}
 	return false, errors.New("not found")
+}
+
+func (c *Cache) ShouldDirect(key string) bool {
+	d, notFound := c.Exist(key)
+	if notFound != nil {
+		host := strings.Split(key, ":")
+		ips, err := net.LookupIP(host[0])
+		if err != nil {
+			log.Warningln(err, "force use Proxy")
+			d = false
+		} else {
+			ip := ips[0].String()
+			d = utils.ShouldDirect(ip)
+		}
+		c.Set(key, d)
+	}
+	return d
 }
