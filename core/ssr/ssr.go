@@ -8,11 +8,11 @@ import (
 
 	"github.com/chinaboard/coral/config"
 	"github.com/chinaboard/coral/core/proxy"
-	"github.com/chinaboard/shadowsocksR/tools/socks"
+	"github.com/sun8911879/shadowsocksR/tools/socks"
 
 	"github.com/juju/errors"
 
-	shadowsocksr "github.com/chinaboard/shadowsocksR"
+	shadowsocksr "github.com/sun8911879/shadowsocksR"
 )
 
 type ShadowsocksRProxy struct {
