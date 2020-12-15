@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -140,7 +139,7 @@ func (this *httpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 		errs    error
 	)
 
-	rConn, timeout, errs = proxy.Dial(r.Host)
+	rConn, timeout, errs = proxy.Dial("tcp", r.Host)
 
 	if errs != nil {
 		log.Errorln(proxy.Name(), "Dial:", err)
@@ -155,7 +154,7 @@ func (this *httpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 func (this *httpListener) HandleHttp(w http.ResponseWriter, r *http.Request, proxy proxy.Proxy) {
 	tr := http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			conn, _, err := proxy.Dial(addr)
+			conn, _, err := proxy.Dial(network, addr)
 			return conn, err
 		},
 	}
@@ -230,7 +229,7 @@ func (this *httpListener) AuthIP(ip string) bool {
 }
 
 func (this *httpListener) auth(w http.ResponseWriter, r *http.Request) bool {
-	ip := strings.Split(r.RemoteAddr, ":")[0]
+	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 	auth := this.AuthIP(ip)
 	if !auth {
 		log.Warnln(r.RemoteAddr, r.Method, r.Host)

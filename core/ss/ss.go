@@ -32,7 +32,7 @@ func New(server config.CoralServer) (proxy.Proxy, error) {
 	}, nil
 }
 
-func (this *ShadowsocksProxy) Dial(addr string) (net.Conn, time.Duration, error) {
+func (this *ShadowsocksProxy) Dial(network, addr string) (net.Conn, time.Duration, error) {
 	conn, err := ss.Dial(addr, this.Address, this.Cipher.Copy())
 	return conn, this.Timeout, err
 }

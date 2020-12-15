@@ -44,7 +44,7 @@ func New(server config.CoralServer) (proxy.Proxy, error) {
 	}, nil
 }
 
-func (this *ShadowsocksRProxy) Dial(addr string) (net.Conn, time.Duration, error) {
+func (this *ShadowsocksRProxy) Dial(network, addr string) (net.Conn, time.Duration, error) {
 	ssrconn, err := shadowsocksr.NewSSRClient(this.Address)
 	if err != nil {
 		return nil, this.Timeout, errors.New(fmt.Sprintf("connecting to SSR server failed :%v", err))

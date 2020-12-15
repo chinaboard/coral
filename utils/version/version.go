@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	BuildVersion = "1.0.0.20200917"
+	BuildVersion = "1.0.0.20201215"
 )
 
 func init() {

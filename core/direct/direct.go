@@ -15,8 +15,8 @@ func New(timeout time.Duration) proxy.Proxy {
 	return &DirectProxy{Timeout: timeout}
 }
 
-func (this *DirectProxy) Dial(addr string) (net.Conn, time.Duration, error) {
-	conn, err := net.DialTimeout("tcp", addr, this.Timeout)
+func (this *DirectProxy) Dial(network, addr string) (net.Conn, time.Duration, error) {
+	conn, err := net.DialTimeout(network, addr, this.Timeout)
 	return conn, this.Timeout, err
 }
 
