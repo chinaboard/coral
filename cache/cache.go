@@ -58,7 +58,7 @@ func (c *Cache) ShouldDirect(key string) bool {
 		host, _, _ := net.SplitHostPort(key)
 		ips, err := net.LookupIP(host)
 		if err != nil {
-			log.Warningln(err, "force use Proxy")
+			log.Warningln(err, host, "force use Proxy")
 			d = false
 		} else {
 			ip := ips[0].String()
