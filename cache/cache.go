@@ -2,6 +2,7 @@ package cache
 
 import (
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,6 +57,9 @@ func (c *Cache) ShouldDirect(key string) bool {
 	d, notFound := c.Exist(key)
 	if notFound != nil {
 		host, _, _ := net.SplitHostPort(key)
+		if strings.TrimSpace(host) == "" {
+			host = key
+		}
 		ips, err := net.LookupIP(host)
 		if err != nil {
 			log.Warningln(err, host, "force use Proxy")
