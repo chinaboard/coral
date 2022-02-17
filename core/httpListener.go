@@ -142,7 +142,7 @@ func (this *httpListener) HandleConnect(w http.ResponseWriter, r *http.Request, 
 	rConn, timeout, errs = proxy.Dial("tcp", r.Host)
 
 	if errs != nil {
-		log.Errorln(proxy.Name(), "Dial:", err)
+		log.Errorln(proxy.Name(), "Dial:", err, r.Host)
 		return
 	}
 	lConn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
@@ -162,7 +162,7 @@ func (this *httpListener) HandleHttp(w http.ResponseWriter, r *http.Request, pro
 	r.Close = true
 	resp, err := tr.RoundTrip(r)
 	if err != nil {
-		log.Errorln("request error: ", err)
+		log.Errorln("request error: ", err, r.Host)
 		return
 	}
 	defer resp.Body.Close()
