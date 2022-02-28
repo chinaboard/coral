@@ -19,7 +19,7 @@ func ShouldDirect(ip string) bool {
 			log.Errorf("error judging ip should direct: %s", ip)
 		}
 	}()
-	if strings.HasPrefix(ip, "0.0.0.0") {
+	if strings.HasPrefix(ip, "0.0.0.0") || strings.HasPrefix(ip, "59.82.31.112") {
 		return false
 	}
 	_, isPrivate := HostIsIP(ip)
