@@ -108,14 +108,14 @@ func (this *httpListener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d := this.cache.ShouldDirect(r.Host)
+	ip, d := this.cache.ShouldDirect(r.Host)
 
 	proxy, err := this.selectProxyFunc(r.Host, this.proxies, d)
 	if err != nil {
 		log.Errorln(err)
 		return
 	}
-	log.Infoln(proxy.Name(), r.RemoteAddr, r.Method, r.Host)
+	log.Infoln(proxy.Name(), r.RemoteAddr, r.Method, r.Host, ip)
 
 	if r.Method == "CONNECT" {
 		this.HandleConnect(w, r, proxy)

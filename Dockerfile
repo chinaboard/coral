@@ -1,7 +1,7 @@
 #
 # Builder
 #
-FROM golang:1.17-alpine as builder
+FROM golang:1.18.2-alpine as builder
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 RUN apk add --no-cache ca-certificates
 ENV GOPROXY=https://goproxy.io,direct

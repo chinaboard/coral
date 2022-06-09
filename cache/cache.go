@@ -53,8 +53,9 @@ func (c *Cache) Exist(key string) (bool, error) {
 	return false, errors.New("not found")
 }
 
-func (c *Cache) ShouldDirect(key string) bool {
+func (c *Cache) ShouldDirect(key string) (string, bool) {
 	d, notFound := c.Exist(key)
+	ip := ""
 	if notFound != nil {
 		host, _, _ := net.SplitHostPort(key)
 		if strings.TrimSpace(host) == "" {
@@ -65,10 +66,10 @@ func (c *Cache) ShouldDirect(key string) bool {
 			log.Warningln(err, host, "force use Proxy")
 			d = false
 		} else {
-			ip := ips[0].String()
+			ip = ips[0].String()
 			d = utils.ShouldDirect(ip)
 		}
 		c.Set(key, d)
 	}
-	return d
+	return ip, d
 }
